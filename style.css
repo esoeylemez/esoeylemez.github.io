@@ -1,0 +1,243 @@
+html {
+    background: #fff;
+    color: #000;
+    font-family: "DejaVu Serif", dejavu, "Times New Roman", Times, serif;
+    padding: 0;
+}
+
+body {
+    margin: 0 auto;
+    max-width: 80ex;
+    padding: 0.4em 1ex;
+}
+
+
+/*** Header ***/
+
+header {
+    background: #ddd;
+    margin: 0;
+    padding: 0;
+    text-align: right;
+}
+
+header .site-title {
+    font-size: 150%;
+    font-stretch: condensed;
+    font-style: italic;
+    margin: 0;
+    padding: 0;
+    text-align: right;
+}
+
+header a:visited {
+    color: #00d;
+}
+
+@media screen and (min-width: 480px) {
+    header {
+        background: #fff;
+        float: right;
+        margin: 0 0 0.4em 2ex;
+    }
+}
+
+
+/*** Content ***/
+
+h1 {
+    font-size: 170%;
+    font-stretch: condensed;
+    font-weight: normal;
+    margin: 0.4em 0 1em;
+    padding: 0;
+}
+
+@media screen and (min-width: 480px) {
+    h1 {
+        margin: 0;
+    }
+}
+
+h2 {
+    font-size: 150%;
+    font-weight: bold;
+    margin: 1.8em 0 0.5em;
+}
+
+h3 {
+    font-size: 130%;
+    font-weight: bold;
+    margin: 1.2em 0 0.5em;
+}
+
+.meta {
+    font-size: 80%;
+}
+
+dd, li, p {
+    text-align: justify;
+}
+
+p {
+    margin: 0.4em 0 1em;
+    padding: 0;
+}
+
+pre {
+    font-family: "DejaVu Sans Mono", dejavu-mono, monospace;
+    margin: 1em 0 1em 3ex;
+    padding: 0;
+}
+
+
+/*** Footer ***/
+
+footer {
+    background: #ddd;
+    font-size: 85%;
+    margin: 2em 0 0;
+    padding: 0;
+    text-align: right;
+}
+
+footer p {
+    margin: 0;
+    padding: 0;
+    text-align: right;
+}
+
+
+/*** Emphasis ***/
+
+a:link {
+    color: #00d;
+    text-decoration: none;
+}
+
+a:link:hover {
+    text-decoration: underline;
+}
+
+a:visited {
+    color: #55f;
+}
+
+code {
+    font-family: "DejaVu Sans Mono", dejavu-mono, monospace;
+}
+
+q {
+    quotes: "“" "”" "‘" "’";
+}
+
+html[lang=de] q {
+    quotes: "„" "“" "‚" "‘";
+}
+
+
+/*** Code highlighting ***/
+
+pre .dt {
+    font-weight: bold;
+}
+
+pre .kw {
+    font-weight: bold;
+}
+
+
+/*** Fonts ***/
+
+@font-face {
+    font-family: dejavu;
+    src: url(dejavu-fonts/DejaVuSerif.ttf);
+    font-stretch: normal;
+    font-style: normal;
+    font-weight: normal;
+}
+
+@font-face {
+    font-family: dejavu;
+    src: url(dejavu-fonts/DejaVuSerif-Bold.ttf);
+    font-stretch: normal;
+    font-style: normal;
+    font-weight: bold;
+}
+
+
+@font-face {
+    font-family: dejavu;
+    src: url(dejavu-fonts/DejaVuSerif-BoldItalic.ttf);
+    font-stretch: normal;
+    font-style: italic;
+    font-weight: bold;
+}
+
+@font-face {
+    font-family: dejavu;
+    src: url(dejavu-fonts/DejaVuSerif-Italic.ttf);
+    font-stretch: normal;
+    font-style: italic;
+    font-weight: normal;
+}
+
+@font-face {
+    font-family: dejavu;
+    src: url(dejavu-fonts/DejaVuSerifCondensed.ttf);
+    font-stretch: condensed;
+    font-style: normal;
+    font-weight: normal;
+}
+
+@font-face {
+    font-family: dejavu;
+    src: url(dejavu-fonts/DejaVuSerifCondensed-Bold.ttf);
+    font-stretch: condensed;
+    font-style: normal;
+    font-weight: bold;
+}
+
+@font-face {
+    font-family: dejavu;
+    src: url(dejavu-fonts/DejaVuSerifCondensed-BoldItalic.ttf);
+    font-stretch: condensed;
+    font-style: italic;
+    font-weight: bold;
+}
+
+@font-face {
+    font-family: dejavu;
+    src: url(dejavu-fonts/DejaVuSerifCondensed-Italic.ttf);
+    font-stretch: condensed;
+    font-style: italic;
+    font-weight: normal;
+}
+
+@font-face {
+    font-family: dejavu-mono;
+    src: url(dejavu-fonts/DejaVuSansMono.ttf);
+    font-style: normal;
+    font-weight: normal;
+}
+
+@font-face {
+    font-family: dejavu-mono;
+    src: url(dejavu-fonts/DejaVuSansMono-Bold.ttf);
+    font-style: normal;
+    font-weight: bold;
+}
+
+@font-face {
+    font-family: dejavu-mono;
+    src: url(dejavu-fonts/DejaVuSansMono-BoldItalic.ttf);
+    font-style: italic;
+    font-weight: bold;
+}
+
+@font-face {
+    font-family: dejavu-mono;
+    src: url(dejavu-fonts/DejaVuSansMono-Italic.ttf);
+    font-style: italic;
+    font-weight: normal;
+}

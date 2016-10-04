@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html$if(lang)$ lang="$lang$"$endif$$if(dir)$ dir="$dir$"$endif$>
+<head>
+    <title>$pagetitle$ – ertes.eu</title>
+    <meta charset="utf-8" />
+    <meta name="generator" content="pandoc" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+$for(author-meta)$
+    <meta name="author" content="$author-meta$" />
+$endfor$
+$if(date-meta)$
+    <meta name="dcterms.date" content="$date-meta$" />
+$endif$
+$for(css)$
+    <link rel="stylesheet" href="$css$" />
+$endfor$
+$if(math)$
+$math$
+$endif$
+    <!--[if lt IE 9]>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+    <![endif]-->
+$for(header-includes)$
+$header-includes$
+$endfor$
+</head>
+<body>
+$for(include-before)$
+$include-before$
+$endfor$
+$if(title)$
+<header>
+<p class="site-title"><a href="about.html">ertes.eu</a></p>
+</header>
+<h1 class="title">$title$</h1>
+$endif$
+$if(author)$
+  $if(date)$
+    <p class="meta">by $for(author)$$author$$sep$, $endfor$, published $date$</p>
+  $else$
+    <p class="meta">Published by $for(author)$$author$$sep$, $endfor$</p>
+  $endif$
+$else$
+  $if(date)$
+    <p class="meta">Published on $date$</p>
+  $endif$
+$endif$
+$if(want-toc)$
+<nav id="$idprefix$toc">
+$toc$
+</nav>
+$endif$
+$body$
+<footer>
+$if(copyright)$
+<p>&copy; $copyright$</p>
+$endif$
+<p><a href="about.html">Legal information</a></p>
+</footer>
+$for(include-after)$
+$include-after$
+$endfor$
+</body>
+</html>
