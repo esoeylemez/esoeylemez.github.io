@@ -32,5 +32,5 @@ Ledger-Tutorial (German)
 Drafs
 -----
 
-[The Monoid Tutorial](tutorial/monoids.html)
+[The Monoid Tutorial](tutorial/monoids.html):
   : Monoids as a programming pattern
