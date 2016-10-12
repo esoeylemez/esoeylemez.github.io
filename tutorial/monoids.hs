@@ -108,3 +108,14 @@ instance (Num a) => Semigroup (MyProduct a) where
 
 listLen :: [a] -> Integer
 listLen = foldl' (\c _ -> 1 + c) 0
+
+newtype AndThen =
+    AndThen {
+      runAndThen :: IO ()
+    }
+
+instance Monoid AndThen where
+    mappend (AndThen c1) (AndThen c2) =
+        AndThen (c1 >> c2)
+
+    mempty = AndThen (pure ())

@@ -355,3 +355,88 @@ will discard the `ASemigroup` type in favour of the `Semigroup` class,
 and we will identify types with semigroups, so for example instead of
 referring to the "list of characters concatenation semigroup", we will
 simply refer to the "`[Char]` semigroup".
+
+
+Monoids
+=======
+
+Now that we understand semigroups, monoids are just an extra law away:
+A monoid is a semigroup with a certain element called `mempty` that
+satisfies the following equations for all `x`:
+
+  * Left identity: `mempty <> x = x`,
+  * Right identity: `x <> mempty = x`.
+
+This law is called the identity law, and we will refer to `mempty` as
+the *identity* of the monoid.  It is also sometimes called the *neutral
+element*, the *empty element*, the *zero* or the *one*, which indicate
+what the element denotes.
+
+The type class for monoids is predefined (of course) and
+straightforward... with a minor but rather unfortunate caveat: as of
+October 2016 (base 4.9) there is a historical accident in the base
+library.  It *should* be defined like this,
+
+``` haskell
+class (Semigroup a) => Monoid a where
+    mempty :: a
+```
+
+but because the `Semigroup` class was actually added long after the
+`Monoid` class, in the current base library it's defined like this:
+
+``` haskell
+class Monoid a where
+    mappend :: a -> a -> a
+    mempty  :: a
+```
+
+This may lead to some minor code duplication that in principle wouldn't
+be necessary, but it's not a serious problem, and it will likely be
+fixed in a future version.
+
+Many semigroups are also monoids.  For example the list concatenation
+semigroup is also a monoid,
+
+``` haskell
+instance Monoid [a] where
+    mappend = (++)
+    mempty = []
+```
+
+because concatenation with the empty list always yields the original
+list.  The summation semigroup is also a monoid,
+
+``` haskell
+instance (Num a) => Monoid (Sum a) where
+    mappend (Sum x) (Sum y) = Sum (x + y)
+    mempty = Sum 0
+```
+
+because adding 0 always yields the original number.  Ok, let's look at a
+slightly trickier example:
+
+``` haskell
+newtype AndThen =
+    AndThen {
+      runAndThen :: IO ()
+    }
+
+instance Monoid AndThen where
+    mappend (AndThen c1) (AndThen c2) =
+        AndThen (c1 >> c2)
+
+    mempty = _
+```
+
+This is supposedly the IO composition monoid.  We have seen that it's a
+semigroup (`sAndThen`), so all we need for it to become a monoid is an
+identity, an action that is neutral with respect to IO composition.
+Which action could we compose with any other action to yield the
+original action?  The action that does nothing.  If we compose any
+action `c` with an action that does nothing, the result is just `c`
+again.
+
+``` haskell
+mempty = AndThen (pure ())
+```
