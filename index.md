@@ -26,6 +26,9 @@ Ledger-Tutorial (German)
 [Teil 1: Grundlagen](tutorial/ledger-01-intro.html):
   : Einführung in Ledger und die doppelte Buchführung
 
+[Teil 2: Buchführungsperioden](tutorial/ledger-02-perioden.html):
+  : Periodische Buchführung mit Erfolgskonten
+
 Drafs
 -----
 
