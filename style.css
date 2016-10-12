@@ -152,6 +152,11 @@ dt {
     padding: 0;
 }
 
+math {
+    font-family: dejavu-math, "DejaVu Serif", dejavu, "Times New Roman", Times, serif;
+    font-size: 120%;
+}
+
 p {
     margin: 1em 0;
     padding: 0;
@@ -308,6 +313,13 @@ pre .kw {
     src: url(dejavu-fonts/DejaVuSerifCondensed-Italic.ttf);
     font-stretch: condensed;
     font-style: italic;
+    font-weight: normal;
+}
+
+@font-face {
+    font-family: dejavu-math;
+    src: url(dejavu-fonts/DejaVuMathTeXGyre.ttf);
+    font-style: normal;
     font-weight: normal;
 }
 

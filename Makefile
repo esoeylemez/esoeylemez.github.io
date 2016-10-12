@@ -4,7 +4,7 @@ targets = \
 	$(patsubst %.md,%.html,$(wildcard *.md) $(wildcard tutorial/*.md))
 
 PANDOC = pandoc \
-	--from=markdown \
+	--from=markdown+tex_math_double_backslash \
 	--smart \
 	--standalone \
 	--toc \
@@ -15,6 +15,7 @@ PANDOC_HTML = $(PANDOC) \
 	--base-header-level=2 \
 	--css=style.css \
 	--html-q-tags \
+	--mathml \
 	--section-divs \
 	--template=template.html \
 	--to=html5
