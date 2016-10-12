@@ -22,7 +22,7 @@ Semigroups
 ==========
 
 Let's build up to monoids first; don't worry, it's a relatively short
-build-up.  A semigroup is an associative binary function:
+build-up.  A *semigroup* is an associative binary function:
 
 ``` haskell
 -- | Associative binary functions.  Values of this type should satisfy
