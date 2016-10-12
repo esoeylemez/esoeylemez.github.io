@@ -20,6 +20,12 @@ Software
 Tutorials
 =========
 
+Ledger-Tutorial (German)
+------------------------
+
+[Teil 1: Grundlagen](tutorial/ledger-01-intro.html):
+  : Einführung in Ledger und die doppelte Buchführung
+
 Drafs
 -----
 
