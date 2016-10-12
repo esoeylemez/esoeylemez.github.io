@@ -417,10 +417,7 @@ because adding 0 always yields the original number.  Ok, let's look at a
 slightly trickier example:
 
 ``` haskell
-newtype AndThen =
-    AndThen {
-      runAndThen :: IO ()
-    }
+newtype AndThen = AndThen { runAndThen :: IO () }
 
 instance Monoid AndThen where
     mappend (AndThen c1) (AndThen c2) =
