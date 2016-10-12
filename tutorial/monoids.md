@@ -261,6 +261,8 @@ might actually consider computing `f x # f y` instead, because now you
 can compute `f x` and `f y` individually and in parallel.  This is
 essentially how MapReduce works.
 
+**TODO**: Add exercises.
+
 
 Type classes
 ============
