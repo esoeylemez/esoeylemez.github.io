@@ -463,3 +463,27 @@ instance (Bounded a, Ord a) => Monoid (Max a) where
 
 So sometimes a family of semigroups is partially a family of monoids,
 but needs extra constraints.
+
+**TODO**: Add exercises.
+
+
+Monoidal design
+---------------
+
+There are a number of reasons why as a programmer one may find monoids
+worth studying:
+
+  * As a design pattern monoids capture the notion of *compositional
+    design* (as opposed to monolithic design).  The key feature that
+    follows from the monoid laws is that individual components must be
+    self-contained in a strong sense, which enables local reasoning.
+
+  * Monoid morphisms capture the notion of *extensibility*, but unlike
+    traditional extension mechanisms monoid morphisms are strictly
+    separate from the monoids they map.  In other words an extension
+    will never change existing code.
+
+Together these two features provide true separation of concerns.  Have
+you ever called your code "done"?  Confidently?  Now you can.
+
+**TODO**: Expand.
