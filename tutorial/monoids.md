@@ -351,5 +351,5 @@ instance Semigroup [a] where
 From here on we will use type classes exclusively.  In other words, we
 will discard the `ASemigroup` type in favour of the `Semigroup` class,
 and we will identify types with semigroups, so for example instead of
-referring to the "concatenation semigroup", we will simply refer to the
-"`[A]` semigroup" for some `A`.
+referring to the "list of characters concatenation semigroup", we will
+simply refer to the "`[Char]` semigroup".
