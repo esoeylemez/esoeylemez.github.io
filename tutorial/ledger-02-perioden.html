@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<title>Ledger: 2. Buchführungsperioden – ertes.eu</title>
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+<meta name="author" content="ertes" />
+<meta name="dcterms.date" content="2015-08-06" />
+<link rel="stylesheet" href="../style.css" />
+<!--[if lt IE 9]>
+<script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+<![endif]-->
+</head>
+<body>
+<header>
+<p class="site-title"><a href="../index.html">ertes.eu</a></p>
+</header>
+<main role="main">
+<h1 class="title">Ledger: 2. Buchführungsperioden</h1>
+<p class="meta">by ertes, published on 2015-08-06</p>
+<nav id="toc">
+<h2>Table of contents</h2>
+<ul>
+<li><a href="#unterkonten">Unterkonten</a></li>
+<li><a href="#buchführungsperioden">Buchführungsperioden</a></li>
+<li><a href="#erfolgskonten">Erfolgskonten</a></li>
+<li><a href="#monatsabschluss">Monatsabschluss</a></li>
+</ul>
+</nav>
+<p>Im <a href="ledger-01-intro.html">letzten Artikel</a> haben wir die Grundlagen der doppelten Buchführung mit Ledger gelernt. Jetzt wollen wir ein neues Buch beginnen, und diesmal wollen wir es so führen, dass es uns wesentlich mehr Information vermittelt als ein Blick in unseren Geldbeutel. Wir werden <em>Unterkonten</em> und <em>Buchungsperioden</em> kennenlernen.</p>
+<p><a href="http://creativecommons.org/licenses/by-sa/4.0/"><img src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png" alt="Creative Commons Attribution-ShareAlike 4.0 International License" /></a> This work is licensed under a <a href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>
+<section id="unterkonten" class="level2">
+<h2>Unterkonten</h2>
+<p>Wie jedes gute Buchführungsprogramm erlaubt Ledger uns, Unterkonten anzulegen. Dadurch hat jedes Konto einen <em>Pfad</em>, ähnlich wie Dateipfade, aber mit einem Doppelpunkt (<code>:</code>) als Trenner.</p>
+<p>Wir machen wieder eine Zeitreise, diesmal zum 1. November 2014, und beginnen unser Buch mit dem Dateinamen <code>tutorial2.ledger</code>:</p>
+<pre><code>2014-11-01 Start
+    aktiv:umlauf:bank:1234        200,00 EUR
+    aktiv:umlauf:kasse            150,00 EUR
+    aktiv:umlauf:port              35,00 EUR
+    aktiv:umlauf:spardose           4,30 EUR
+    eigen:start:archiv</code></pre>
+<p>Und wir werfen auch gleich einen Blick auf unsere Bilanz:</p>
+<pre><code> 389,30 EUR  aktiv:umlauf
+ 200,00 EUR    bank:1234
+ 150,00 EUR    kasse
+  35,00 EUR    port
+   4,30 EUR    spardose
+-389,30 EUR  eigen:start:archiv</code></pre>
+<p>Erneut haben wir mit zwei Hauptkonten begonnen, aber diesmal sind sie in Unterkonten aufgeteilt. Das Aktivkonto enthält ein Unterkonto für unser Umlaufvermögen, also für das Geld, das wir konkret besitzen. Da wir auch wissen wollen, wo das Geld ist, ist auch das Umlaufkonto in Unterkonten aufgeteilt. Wir besitzen eine Kasse (<code>kasse</code>) mit 150 Euro, einen Geldbeutel (<code>port</code> wie <em>portabel</em> oder <em>Portemonnaie</em>) mit 35 Euro, eine Spardose und ein Bankkonto. Da wir mehrere Bankkonten haben könnten, haben wir auch <code>bank</code> in Unterkonten aufgeteilt.</p>
+<p>Hier sehen wir auch gleich, dass eine Buchung sich aus mehr als zwei Posten zusammensetzen kann. Obwohl das im Privathaushalt eher die Ausnahme ist, werden wir einige weitere Beispiele davon sehen.</p>
+</section>
+<section id="buchführungsperioden" class="level2">
+<h2>Buchführungsperioden</h2>
+<p>Anders als im letzten Artikel führen wir unser Buch nicht mehr fortlaufend, sondern in einzelnen Abschnitten, den <em>Buchführungsperioden</em>. Eine solche Periode geht dabei für uns einen Monat lang. Man kann natürlich auch andere Perioden wählen oder gar die Perioden variieren, aber es ist sinnvoll, eine zu wählen, die dieselbe Länge hat wie unsere periodischen Einnahmen und Ausgaben. Die meisten von uns beziehen monatlich Lohn und haben monatliche Ausgaben (Miete, Strom, etc.). Daher ist ein monatlich geführtes Buch fast immer die beste Wahl.</p>
+<p>Unser Eigenkapital setzt sich aus zwei Teilen zusammen, um diese Perioden wiederzugeben, nämlich aus dem <em>Startkapital</em> und den <em>Erfolgskonten</em>.</p>
+<p>Wir starten in den Monat mit einem bestimmten <em>Startkapital</em> (<code>start</code>). Dieses setzt sich zusammen aus den monatlichen Gewinnen und Verlusten der vergangenen Perioden. Die Perioden, über die wir keine Aufzeichnungen haben oder die wir nicht mehr in der Kontenübersicht sehen wollen, befinden sich im Archiv. Da wir unser Buch erst jetzt beginnen, ist die gesamte Vergangenheit im Archiv.</p>
+<p>Samstags ist Marktplatztag. Wir wollen auf dem Marktplatz einkaufen gehen. Dazu benötigen wir etwas mehr Bargeld. Um uns den Weg zum Bankautomaten zu ersparen, nehmen wir es einfach aus der Kasse:</p>
+<pre><code>2014-11-01 Barauszahlung
+    aktiv:umlauf:port              50,00 EUR
+    aktiv:umlauf:kasse</code></pre>
+<p>Eine solche Buchung zwischen aktiven Konten wird als <em>Aktivtausch</em> bezeichnet. Unser Vermögen ändert sich dadurch nicht. Wir haben jetzt 85 Euro im Geldbeutel und nur noch 100 Euro in der Kasse.</p>
+</section>
+<section id="erfolgskonten" class="level2">
+<h2>Erfolgskonten</h2>
+<p>Der zweite Teil des Eigenkapitals sind die beiden <em>Erfolgskonten</em>. Im letzten Buch hatten wir unsere Erträge und Aufwendungen in Verbindung mit dem Eigenkapitalkonto gebucht. Diesmal wollen wir etwas genauer sein. Nun, da wir genug Geld im Geldbeutel haben, gehen wir einkaufen:</p>
+<pre><code>2014-11-01 Marktplatz
+    eigen:aufwand:nahrung          40,30 EUR
+    eigen:aufwand:pflanzen         12,50 EUR
+    aktiv:umlauf:port</code></pre>
+<p>Unsere Bilanz nach dem Einkauf:</p>
+<pre><code> 336,50 EUR  aktiv:umlauf
+ 200,00 EUR    bank:1234
+ 100,00 EUR    kasse
+  32,20 EUR    port
+   4,30 EUR    spardose
+-336,50 EUR  eigen
+  52,80 EUR    aufwand
+  40,30 EUR      nahrung
+  12,50 EUR      pflanzen
+-389,30 EUR    start:archiv</code></pre>
+<p>Die Konten <code>aufwand</code> und später <code>ertrag</code> werden als <em>Erfolgskonten</em> bezeichnet. Streng genommen ist der Name <code>aufwand</code> falsch (es müsste <code>aufwendungen</code> heißen), aber wir bevorzugen den kürzeren Namen gegenüber der strikten Sprachgenauigkeit.</p>
+<p>Wir haben also in diesem Monat bereits Aufwendungen gehabt. Wie im letzten Buch haben wir diese zum Eigenkapital aufgebucht, allerdings diesmal getrennt vom Startkapital.</p>
+<p>Fast hätten wir vergessen, dass die Miete fällig ist. Diese können wir noch nicht bezahlen, da wir unseren Lohn noch nicht erhalten haben. Daher buchen wir sie aus dem Fremdkapital heraus:</p>
+<pre><code>2014-11-01 Miete
+    eigen:aufwand:wohnung         600,00 EUR
+    fremd:vermieter</code></pre>
+<p>Diese Buchung bedarf einer Erklärung. Fremdkapital ist, wie wir gesehen haben, gewissermaßen das, was wir uns ausgeliehen haben. Hier haben wir uns aber nichts ausgeliehen, oder? Doch, buchhalterisch betrachtet schon. Der Vermieter hat uns 600 Euro geliehen, von denen wir direkt die Aufwendung getätigt haben. So direkt, dass das Geld an sich nie bei uns angekommen ist. Nun schulden wir dem Vermieter diese 600 Euro.</p>
+<p>Glücklicherweise haben wir nicht nur Aufwendungen zu verzeichnen, denn wir bekommen ja noch Lohn. Wir haben ihn zwar noch nicht bekommen, aber er steht uns zu. Wir erheben eine <em>Forderung</em> gegenüber unserem Arbeitgeber Zek. Daher ist er aktiv und sollte gleich gebucht werden. Forderungen buchen wir in ein eigenes Aktivkonto <code>zahlbar</code>:</p>
+<pre><code>2014-11-01 Zeks Bankenimperium
+    aktiv:zahlbar:zek           1.800,00 EUR
+    eigen:ertrag:lohn</code></pre>
+<p>Es ist praktisch, für jede Person bzw. Firma ein eigenes Unterkonto unter <code>aktiv:zahlbar</code> und <code>fremd</code> zu erstellen, denn so sehen wir immer schon direkt in der Bilanz, wer uns wie viel schuldet und wem wir wie viel schulden. Bilanz:</p>
+<pre><code> 2.136,50 EUR  aktiv
+   336,50 EUR    umlauf
+   200,00 EUR      bank:1234
+   100,00 EUR      kasse
+    32,20 EUR      port
+     4,30 EUR      spardose
+ 1.800,00 EUR    zahlbar:zek
+-1.536,50 EUR  eigen
+   652,80 EUR    aufwand
+    40,30 EUR      nahrung
+    12,50 EUR      pflanzen
+   600,00 EUR      wohnung
+-1.800,00 EUR    ertrag:lohn
+  -389,30 EUR    start:archiv
+  -600,00 EUR  fremd:vermieter</code></pre>
+<p>Der Name <code>zahlbar</code> ist willkürlich aus der englischen Bezeichnung <em>accounts payable</em> für das Forderungskonto übersetzt. Wir bevorzugen mal wieder den kürzeren Namen.</p>
+<p>Unser Vermögen beträgt 2.136,50 Euro. Davon haben wir auf 336,50 Euro direkt Zugriff. Nun schlafen wir zwei mal. Es ist Montag, und Zek hat unser Geld überwiesen. Dies ist wieder ein Aktivtausch, da sich unser Vermögen nicht verändert:</p>
+<pre><code>2014-11-03 Zeks Bankenimperium
+    aktiv:umlauf:bank:1234      1.800,00 EUR
+    aktiv:zahlbar:zek</code></pre>
+<p>Davon gleichen wir sofort unsere Mietschuld aus:</p>
+<pre><code>2014-11-03 Miete
+    fremd:vermieter               600,00 EUR
+    aktiv:umlauf:bank:1234</code></pre>
+<p>Auch diese Buchung muss erklärt werden. Wir sind soeben 600 Euro losgeworden. Warum ist das keine Aufwendung? Weil die Aufwendung bereits getätigt wurde und wir jetzt nur noch unsere Schulden bezahlen, die daraus entstanden sind. <em>Verloren</em> hatten wir das Geld bereits am 1. November!</p>
+<p>Erträge und Aufwendungen können wir übrigens so genau nehmen wie wir möchten. Wenn wir nach der Arbeit etwas essen oder trinken gehen, können wir etwa zwischen Preis und Trinkgeld unterscheiden:</p>
+<pre><code>2014-11-03 Quarks Bar
+    eigen:aufwand:gastro           23,30 EUR
+    eigen:aufwand:trinkgeld         1,70 EUR
+    aktiv:umlauf:port</code></pre>
+</section>
+<section id="monatsabschluss" class="level2">
+<h2>Monatsabschluss</h2>
+<p>Wir schlafen eine ganze Weile und wachen am Abend des 30. November 2014 auf. Unsere aktuelle Bilanz sieht folgendermaßen aus:</p>
+<pre><code> 1.511,50 EUR  aktiv:umlauf
+ 1.400,00 EUR    bank:1234
+   100,00 EUR    kasse
+     7,20 EUR    port
+     4,30 EUR    spardose
+-1.511,50 EUR  eigen
+   677,80 EUR    aufwand
+    23,30 EUR      gastro
+    40,30 EUR      nahrung
+    12,50 EUR      pflanzen
+     1,70 EUR      trinkgeld
+   600,00 EUR      wohnung
+-1.800,00 EUR    ertrag:lohn
+  -389,30 EUR    start:archiv</code></pre>
+<p>Der Monat ist vorbei. Daher wird es Zeit, ihn abzuschließen. Wir führen die so genannte <em>Gewinn- und Verlustrechnung</em> (GuV) durch. Das heißt nichts anderes als dass wir alle Erträge und Aufwendungen ins Startkapital hineinbuchen:</p>
+<pre><code>2014-11-30 GuV
+    eigen:aufwand:gastro             = 0 EUR
+    eigen:aufwand:nahrung            = 0 EUR
+    eigen:aufwand:pflanzen           = 0 EUR
+    eigen:aufwand:trinkgeld          = 0 EUR
+    eigen:aufwand:wohnung            = 0 EUR
+    eigen:ertrag:lohn                = 0 EUR
+    eigen:start:2014:11</code></pre>
+<p>Wenn wir als Buchungsbetrag <code>= 0 EUR</code> schreiben, dann buchen wir damit genau den Betrag, der das Konto auf 0 Euro reduziert. Im Fall von <code>eigen:aufwand:pflanzen</code> etwa buchen wir hier genau -12,50 Euro. Wir werfen einen Blick auf die Bilanz, die nach der GuV schon wesentlich aufgeräumter aussieht:</p>
+<pre><code>    1.511,50 EUR  aktiv:umlauf
+    1.400,00 EUR    bank:1234
+      100,00 EUR    kasse
+        7,20 EUR    port
+        4,30 EUR    spardose
+   -1.511,50 EUR  eigen:start
+   -1.122,20 EUR    2014:11
+     -389,30 EUR    archiv</code></pre>
+<p>Das Startkapital für Dezember setzt sich nun zusammen aus der archivierten Vergangenheit und dem Gewinn (in Höhe von 1.122,20 Euro), den wir im November erwirtschaftet haben. Nun vergeht der Dezember. Den simulieren wir hier mit einer einzigen Buchung:</p>
+<pre><code>2014-12-01 Dezember
+    eigen:aufwand:nahrung         250,00 EUR
+    eigen:aufwand:wohnung         600,00 EUR
+    eigen:ertrag:lohn          -1.800,00 EUR
+    aktiv:umlauf:bank:1234        950,00 EUR</code></pre>
+<p>Wieder führen wir eine GuV durch, um den Dezember abzuschließen:</p>
+<pre><code>2014-12-31 GuV
+    eigen:aufwand:nahrung            = 0 EUR
+    eigen:aufwand:wohnung            = 0 EUR
+    eigen:ertrag:lohn                = 0 EUR
+    eigen:start:2014:12</code></pre>
+<p>Im Eigenkapital der Bilanz sehen wir, dass wir erneut einen Gewinn gemacht haben, aber diesmal war er nicht so hoch wie im November:</p>
+<pre><code>-2.461,50 EUR  eigen:start
+-2.072,20 EUR    2014
+-1.122,20 EUR      11
+  -950,00 EUR      12
+  -389,30 EUR    archiv</code></pre>
+<p>Diese Liste wächst natürlich mit der Zeit. Daher können wir ab und zu mal aufräumen, indem wir die einzelnen 2014-Monate archivieren. Wir möchten aber immer noch sehen, wie sich unser Kapital im Jahr 2014 insgesamt entwickelt hat. Daher legen wir unter <code>2014</code> ein Unterkonto <code>archiv</code> an, unser Jahresarchiv, in dem wir alle Monate zusammenfassen:</p>
+<pre><code>2014-12-31 Archiv
+    eigen:start:2014:11              = 0 EUR
+    eigen:start:2014:12              = 0 EUR
+    eigen:start:2014:archiv</code></pre>
+<p>Diese Monatsarchivierung können wir auch während des Jahres vornehmen, wenn wir wollen. Falls wir beispielsweise immer nur die letzten drei Monate sehen wollen, buchen wir einfach etwa am Ende des Monats April das Startkapital vom Januar ins Jahresarchiv, Ende Mai buchen wir den Februar ins Jahresarchiv, etc.</p>
+<p>Irgendwann, vielleicht am Ende des Jahres 2024, interessiert uns das Jahr 2014 überhaupt nicht mehr. Dann können wir es endgültig archivieren, indem wir den Kontostand ins Gesamtarchiv umbuchen:</p>
+<pre><code>2024-12-31 Archiv
+    eigen:start:2014:archiv          = 0 EUR
+    eigen:start:archiv</code></pre>
+<p>Das Eigenkapital können wir verwalten wie wir wollen. Wir können etwa gänzlich auf eine Unterteilung des Startkapitals verzichten und unsere GuV direkt über <code>eigen:start</code> abschließen. Auch eine Unterteilung in einzelne Ertrags- und Aufwendungskategorien dient nur unserer persönlichen Übersicht.</p>
+</section>
+</main>
+<footer>
+<p>&copy; Ertugrul Söylemez</p>
+<p><a href="../about.html">Legal information</a></p>
+</footer>
+</body>
+</html>

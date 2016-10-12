@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<title>Ledger: 1. Grundlagen – ertes.eu</title>
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+<meta name="author" content="ertes" />
+<meta name="dcterms.date" content="2015-08-06" />
+<link rel="stylesheet" href="../style.css" />
+<!--[if lt IE 9]>
+<script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+<![endif]-->
+</head>
+<body>
+<header>
+<p class="site-title"><a href="../index.html">ertes.eu</a></p>
+</header>
+<main role="main">
+<h1 class="title">Ledger: 1. Grundlagen</h1>
+<p class="meta">by ertes, published on 2015-08-06</p>
+<nav id="toc">
+<h2>Table of contents</h2>
+<ul>
+<li><a href="#vorwort">Vorwort</a></li>
+<li><a href="#einführung">Einführung</a></li>
+<li><a href="#die-erste-buchung">Die erste Buchung</a></li>
+<li><a href="#vermögen-und-kapital">Vermögen und Kapital</a></li>
+<li><a href="#traditionelle-buchführung">Traditionelle Buchführung</a></li>
+</ul>
+</nav>
+<p>Vor Kurzem <a href="https://nerdpol.ch/posts/1814437">habe ich euch versprochen</a>, eine Software-Demo zu <a href="http://ledger-cli.org/">Ledger</a> zu schreiben. Ohne das entsprechende Grundwissen, nämlich der <em>doppelten Buchführung</em>, wäre diese aber ziemlich nutzlos, und dieses Wissen ist außer bei BWLern nicht sehr weit verbreitet. Daher beschloss ich, stattdessen nun eine komplette deutsche Einführung zu schreiben, sowohl in die doppelte Buchführung selbst als auch in das Programm.</p>
+<p>Eines vorweg: Weder bin ich BWLer, noch war ich je ein großer Freund von BWL als Schulfach. Die <em>doppelte Buchführung</em>, die wir hier lernen werden, ist aber genau das, was ich mir unter einem guten Werkzeug vorstelle: sehr einfach und sehr mächtig. Sie zu lernen lohnt sich und zahlt sich sehr schnell aus, das verspreche ich euch. Okay, los geht’s!</p>
+<p><a href="http://creativecommons.org/licenses/by-sa/4.0/"><img src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png" alt="Creative Commons Attribution-ShareAlike 4.0 International License" /></a> This work is licensed under a <a href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>
+<section id="vorwort" class="level2">
+<h2>Vorwort</h2>
+<p>Wir sind alle ein wenig gierig, nicht wahr? Es kann dabei um Geld gehen, muss es aber nicht. Genau so gut können wir auch gierig sein nach</p>
+<ul>
+<li>Filmen oder Musik,</li>
+<li>sozialen Kontakten,</li>
+<li>Karten in einem Rollenspiel,</li>
+<li>Kunstwerken oder Büchern,</li>
+<li>Herausforderungen.</li>
+</ul>
+<p>Wir können auch von einer oder mehrerer dieser <em>Resourcen</em> eine beachtliche Sammlung vorweisen, haben aber lange den Überblick verloren, besonders darüber, wie genau sich unsere Sammlung zusammensetzt, wie sie sich über die Jahre verändert hat, wem wir was verliehen haben und wer uns was ausgeliehen hat.</p>
+<p><a href="http://ledger-cli.org/">Ledger</a> ist ein sehr mächtiges und dennoch einfaches Buchführungsprogramm, das uns den Überblick und die Kontrolle zurückgeben wird. Es basiert auf einem simplen Prinzip: Wir schreiben jeden Tag unsere Buchungen in eine einfache reine Textdatei. Dazu können wir unseren Lieblingseditor verwenden, egal ob Emacs, TextMate, Vim oder auch einfach nur Notepad. Anschließend generiert uns Ledger daraus nahezu beliebige <em>Reporte</em>, etwa unsere aktuellen Kontostände, unsere Schulden, etc. Ledger kann uns zu jedem Konto genau sagen, wie sein Betrag zustandekommt. Wir können dabei so genau werden wie wir möchten.</p>
+<p>Ich selbst verwalte meine Finanzen, meine Hardware, meine Bücher und meine Aufgaben und Projekte damit. Es ersetzt für mich nicht nur das herkömmliche Buchhaltungsprogramm für Finanzen, sondern auch den Aufgabenplaner (etwa org-mode oder TaskWarrior) und Datenbanken für Sachanlagen, also das, wofür die meisten eine Tabellenkalkulation o.ä. nehmen würden. In meiner Hardwareverwaltung mit Ledger sehe ich nicht nur, welche Geräte genau ich besitze, sondern auch wie ich deren Werte einschätze, falls ich sie mal verkaufen sollte, und wie er sich über die Monate verändert.</p>
+<p>An sich ist Ledger ein Kommandozeilenprogramm, und wir werden es in diesem Artikel als solches kennenlernen. Später ist es sinnvoll, es in den Texteditor zu integrieren, sodass wir nicht nur die Kommandozeile nicht mehr brauchen, sondern auch Eingaben viel schneller tätigen können (mit etwas Übung in wenigen Sekunden!). Für die Integration in <a href="https://www.gnu.org/software/emacs/">Emacs</a> werde ich einen eigenen Artikel schreiben. Falls ihr Emacs nutzt und affin seid, könnt ihr das aber auch jetzt schon <a href="http://ledger-cli.org/3.0/doc/ledger-mode.html">selbst erledigen</a>, wenn ihr wollt.</p>
+</section>
+<section id="einführung" class="level2">
+<h2>Einführung</h2>
+<p>Ledger ist ein Kommandozeilenprogramm, das eine reine Textdatei einliest und daraus einen <em>Report</em> erzeugt. Diese Datei bezeichnen wir als unser <em>Buch</em>. Es gibt verschiedene Reporte, aber für die meisten sind nur zwei davon interessant, nämlich die <em>Bilanz</em>, die alle aktuellen Kontostände anzeigt, und das <em>Register</em>, das den Buchungsverkehr zu einem bestimmten Thema anzeigt.</p>
+<p>Besonders mächtig ist das Register, da wir unserem Buch damit sehr viele verschiedene Fragen stellen können. Je genauer wir unsere Finanzen verwalten, desto genauere Fragen können wir stellen. Hier etwa einige Beispiele zu Hardware, falls wir sie so genau verwalten (und das werden wir, aber erst in einem späteren Artikel):</p>
+<ul>
+<li><p>Wie viel habe ich diesen Monat für Hardware ausgegeben?</p></li>
+<li><p>Wie viel muss ich in den nächsten drei Monaten für meine aktuellen Hardware-Finanzierungen (Kredite) ausgeben?</p></li>
+<li><p>Welche Hardware besitze ich momentan?</p></li>
+<li><p>Wie hoch schätze ich ihren Wert ein?</p></li>
+<li><p>Wie viel Wert hat mein Laptop in den letzten drei Monaten meiner Meinung nach verloren?</p></li>
+<li><p>Letzten Monat habe ich Hardware verkauft. Welche Gewinne oder Verluste habe ich dabei durch Fehleinschätzungen der Werte gemacht?</p></li>
+</ul>
+</section>
+<section id="die-erste-buchung" class="level2">
+<h2>Die erste Buchung</h2>
+<p>Kommen wir gleich zur Sache. Wir machen eine Zeitreise zum 1. August 2015. An diesem Tag eröffnen wir unser Buch. Wir starten also unseren Texteditor und erstellen eine Datei namens <code>tutorial.ledger</code>. Es spricht nichts dagegen, sie <code>tutorial.txt</code> oder auch anders zu nennen, wenn ihr wollt. In dem Fall müsst ihr aber die unten aufgeführten Ledger-Befehle entsprechend abändern. Wir tragen folgenden Inhalt ein:</p>
+<pre><code>2015-08-01 Start
+    aktiv          500,00 EUR
+    eigen         -500,00 EUR</code></pre>
+<p>Bei der Formatierung des Inhalts ist Ledger relativ flexibel. Wichtig ist nur, dass die erste Zeile ganz links steht, während die restlichen eingerückt sind. Außerdem müssen zwischen dem Kontonamen (<code>aktiv</code> bzw. <code>eigen</code>) und dem Betrag mindestens zwei Leerzeichen stehen. Das Datum wird von Ledger verarbeitet und muss daher in einem von zwei Formaten notiert werden, entweder <code>JJJJ-MM-TT</code> oder <code>JJJJ/MM/TT</code>.</p>
+<p>Zusammen mit diesem Eintrag werden wir jetzt schon die wichtigsten Begriffe kennenlernen, die wir für die Buchführung brauchen. Was wir hier geschrieben haben, wird als <em>Buchung</em> (auch <em>Transaktion</em>) bezeichnet. Werte, egal ob Geld-, Zeit-, Sach- oder sonstige Mengen, befinden sich stets in <em>Konten</em>, und eine Buchung bewegt Werte zwischen Konten. In diesem Fall haben wir 500 Euro vom Konto <code>eigen</code> abgebucht und auf das Konto <code>aktiv</code> aufgebucht (wir dürfen das als <em>Überweisung</em> bezeichnen). Die einzelnen Wertveränderungen einer Buchung werden als <em>Posten</em> bezeichnet. Unsere Buchung setzt sich aus zwei Posten zusammen. Die Namen der Konten sind bewusst gewählt und werden in Kürze klarer.</p>
+<p>Wir haben eine <em>Währung</em> verwendet: <code>EUR</code>. Sowohl der Name der Währung als auch die Formatierung der Menge sind nahezu frei wählbar, und Ledger wird sich uns anpassen. Wir hätten auch <code>500 Euro</code>, <code>EUR 500.00</code> oder <code>EUR 500,00</code> schreiben können. Bei größeren Beträgen dürfen wir auch Tausendermarkierungen verwenden, z.B. <code>1.500,00 EUR</code>. Für Ledger ist eine <em>Währung</em> alles, was quantifiziert werden kann. Dazu gehört natürlich Geld, aber auch Sachanlagen oder Zeit. Wir können etwa <code>50 Bücher</code> oder <code>5h</code> (5 Stunden) als Mengen angeben.</p>
+<p>Nun, da wir unsere erste Buchung geschrieben haben, wollen wir Ledger unsere aktuellen Kontostände berechnen lassen. Wir starten also eine Kommandozeile, wechseln in das Verzeichnis, das unser Buch enthält und geben ein:</p>
+<pre><code>ledger -f tutorial.ledger bal</code></pre>
+<p>Ledger berechnet die aktuelle <em>Bilanz</em> (englisch <em>balance</em>, daher auch <code>bal</code>) und zeigt sie an:</p>
+<pre><code>          500,00 EUR  aktiv
+         -500,00 EUR  eigen
+--------------------
+                   0</code></pre>
+<p>Alle Konten beginnen mit dem Wert 0. Da wir 500 Euro von <code>eigen</code> auf <code>aktiv</code> gebucht haben, weist <code>eigen</code> natürlich einen negativen Betrag auf. Das ist erwartungsgemäß.</p>
+<p>Bei der doppelten Buchführung dreht sich alles um Ausgeglichenheit. <em>Ausgeglichen</em> bedeutet dabei ganz konkret: <q>die Summe ist null.</q> Jede Buchung muss ausgeglichen sein. Die Summe der einzelnen Posten muss also genau 0 betragen. Hätten wir von <code>eigen</code> etwa nur 400 Euro oder gar nichts abgebucht, hätte Ledger eine Fehlermeldung ausgegeben. Daraus folgt, dass auch die Summe aller Kontostände stets 0 ist sein wird.</p>
+<p>Der Text, der neben dem Datum steht, in unserem Fall <q>Start</q>, wird als <em>Empfänger</em> (englisch <em>payee</em>) bezeichnet. In Wirklichkeit ist dieser Text aber völlig frei wählbar und ist einfach nur eine Buchungsnotiz. Wir geben also an, dass wir am Anfang 500 Euro besitzen.</p>
+<p>Nun kaufen wir uns, immer noch am 1. August, ein Buch für 10,99 Euro. Das notieren wir, indem wir eine weitere Buchung eintragen, einfach direkt unter der obigen Buchung (ihr dürft Leerzeilen lassen, um die Lesbarkeit zu verbessern):</p>
+<pre><code>2015-08-01 Buch
+    eigen           10,99 EUR
+    aktiv</code></pre>
+<p>Das gesamte Buch sieht jetzt also folgendermaßen aus:</p>
+<pre><code>2015-08-01 Start
+    aktiv          500,00 EUR
+    eigen         -500,00 EUR
+
+2015-08-01 Buch
+    eigen           10,99 EUR
+    aktiv</code></pre>
+<p>Wir haben nun vom Konto <code>aktiv</code> 10,99 Euro abgebucht und auf das Konto <code>eigen</code> aufgebucht. Da Buchungen ohnehin ausgeglichen sein müssen, können wir einen der Beträge immer weglassen. Ledger weiß, dass der Buchungsbetrag beim zweiten Posten -10,99 Euro betragen muss. Nun fragen wir erneut nach der Bilanz:</p>
+<pre><code>          489,01 EUR  aktiv
+         -489,01 EUR  eigen
+--------------------
+                   0</code></pre>
+<p>Die letzen beiden Zeilen der Bilanz zeigen die Kontensumme an. Wie bereits erwähnt, ist diese (bei uns) stets 0. Daher werde ich sie in den weiteren Bilanzen weglassen.</p>
+</section>
+<section id="vermögen-und-kapital" class="level2">
+<h2>Vermögen und Kapital</h2>
+<p>Nun wollen wir verstehen, was es mit den Konten auf sich hat. Soweit es die Buchführung betrifft, sind wir ein <em>Unternehmen</em>, und jedes Unternehmen hat einen bestimmten Wert, sein <em>Vermögen</em>. Der Fachbegriff für Vermögen ist <em>Aktiva</em>, daher auch der Kontoname <code>aktiv</code>.</p>
+<p>Wie bereits angedeutet kommt das Vermögen aber nicht aus dem Nichts, sondern es wird <em>beigesteuert</em>, und zwar aus <em>Kapital</em>. Der Fachbegriff des buchhalterischen Kapitals ist <em>Passiva</em>. In diesem Fall haben wir das Vermögen selbst beigesteuert. Es handelt sich um unser <em>Eigenkapital</em>, daher auch der Kontoname <code>eigen</code>.</p>
+<p>Mit anderen Worten: Vermögen ist, worüber wir verfügen, und Kapital ist, wem wir es schulden (daher der negative Betrag bei <code>eigen</code>), also wem es gehört. Wir verfügen im Moment also über 489,01 Euro und schulden es gewissermaßen uns selbst.</p>
+<p>Neben dem Eigenkapital gibt es auch <em>Fremdkapital</em>. Dieses tritt auf, wenn wir uns etwas ausleihen, und das wollen wir jetzt tun. Unser Freund Quark leiht uns 50 Euro aus, und wir verbuchen das:</p>
+<pre><code>2015-08-01 Quark
+    aktiv           50,00 EUR
+    fremd</code></pre>
+<p>Werfen wir einen Blick auf unsere Bilanz:</p>
+<pre><code> 539,01 EUR  aktiv
+-489,01 EUR  eigen
+ -50,00 EUR  fremd</code></pre>
+<p>Unser Vermögen ist auf 539,01 Euro gewachsen, und wir sehen nun deutlich, dass es sich aus 489,01 Euro Eigenkapital und 50 Euro Fremdkapital zusammensetzt. Am nächsten Tag kaufen wir uns ein Notebook im Wert von 500 Euro:</p>
+<pre><code>2015-08-02 Ishkas Computerladen
+    eigen          500,00 EUR
+    aktiv</code></pre>
+<p>Für den Anfang betrachten wir Einkäufe als <em>Aufwendungen</em>, also als Verluste. Das ist natürlich nicht ganz richtig, da das Notebook selbst einen Wert hat, aber das ignorieren wir vorerst mal.</p>
+<p>Jede Aufwendung ist eine Buchung auf das Eigenkapital, weil wir den Verlust selbst verantworten. Wir können mit einem Verlust etwa nicht die Schuld tilgen, die wir gegenüber Quark haben. Die Bilanz nach dem Verlust:</p>
+<pre><code> 39,01 EUR  aktiv
+ 10,99 EUR  eigen
+-50,00 EUR  fremd</code></pre>
+<p>Hier sehen wir auch gleich, dass Kapitalkonten nicht immer einen negativen Betrag aufweisen. Das Eigenkapitalkonto ist dann positiv, wenn wir überschuldet sind. Der Kauf des Notebooks hat uns also pleite gemacht. Wir haben zwar noch Vermögen, aber das gesamte Vermögen gehört jemand anderem. Da unser Eigenkapital ins Positive gerutscht ist, haben wir nicht mal genug Vermögen, um unsere Schuld zu bezahlen. Auf gut deutsch: Wir sind <em>bankrott</em>. Schlecht!</p>
+<p>Natürlich hätten wir diesen Kauf nicht getätigt, wenn wir nicht wüssten, dass uns ab dem 3. August 1.800 Euro von unserem Arbeitgeber zustehen. Dabei handelt es sich um einen <em>Ertrag</em>, also einen Gewinn. Erträge kommen aus dem Eigenkapital, da wir diese niemandem schulden. Wir verantworten sie selbst, denn immerhin haben wir für diesen Ertrag gearbeitet:</p>
+<pre><code>2015-08-03 Zeks Bankenimperium
+    aktiv        1.800,00 EUR
+    eigen</code></pre>
+<p>Unsere Bilanz zeigt, dass es uns jetzt wieder wesentlich besser geht:</p>
+<pre><code> 1.839,01 EUR  aktiv
+-1.789,01 EUR  eigen
+   -50,00 EUR  fremd</code></pre>
+<p>Es gibt nur ein Problem: Das Geld gehört zwar zu unserem Vermögen, aber wir besitzen es noch nicht. Das ist der Unterschied zwischen Besitz und Verfügung. Es handelt sich um eine Forderung, die wir gegenüber Zeks Bankenimperium erheben. Am nächsten Tag, also am 4., haben wir unser Geld auch tatsächlich erhalten, aber das werden wir erst im nächsten Artikel buchen können. Immerhin können wir unsere Schulden begleichen:</p>
+<pre><code>2015-08-04 Quark
+    fremd           50,00 EUR
+    aktiv</code></pre>
+<p>Dadurch, dass wir 50 Euro ins Fremdkapital zurückgebucht haben, stehen wir wieder komplett auf eigenen Beinen:</p>
+<pre><code> 1.789,01 EUR  aktiv
+-1.789,01 EUR  eigen</code></pre>
+<p>Wir könnten dieses Buch nun so weiterführen, aber auf diese Weise können wir nur einen kleinen Teil des Potentials von Ledger ausreizen. Wir haben ausschließlich mit Hauptkonten gearbeitet, um das Konzept von Vermögen und Kapital zu lernen, worauf alles Weitere basiert.</p>
+<p>Im <a href="ledger-02-perioden.html">nächsten Artikel</a> werden wir unsere drei Hauptkonten in Unterkonten aufteilen und die Idee der Buchführungsperioden einführen, damit unsere Bilanz uns anzeigt, worüber wir verfügen, was davon wir konkret besitzen, wem wir wie viel schulden und wie wir uns im Vergleich zu einem vergangenen Zeitpunkt entwickeln. Alles, was dann nicht schon in der Bilanz sichtbar ist, wird uns das Register mitteilen, das wir hier noch überhaupt nicht eingesetzt haben.</p>
+</section>
+<section id="traditionelle-buchführung" class="level2">
+<h2>Traditionelle Buchführung</h2>
+<p>Wer BWL studiert hat oder als Schulfach hatte, erinnert sich vielleicht daran, dass das, was dort erklärt wurde, von unserer Buchführung ein wenig abweicht. Es war von zweispaltigen <q>T-Konten</q>, von <em>Soll</em> und <em>Haben</em> und von <em>Salden</em> die Rede.</p>
+<p>Diese traditionelle Methode stammt aus einer Zeit, als es noch keine Computer gab. Buchungen wurden stets <em>doppelt</em> getätigt (daher auch der Name), und zwar so, dass die Beträge, die entstanden, stets positiv waren. Abschlüsse wurden mit Hilfe von <em>Salden</em> gemacht, um die beiden Spalten dieser Konten auszugleichen.</p>
+<p>Was wir hier gelernt haben, ist aber vollständig äquivalent dazu und darüber hinaus einfacher zu verstehen. Im Wesentlichen besteht der Unterschied darin, dass wir unsere Kapitalkonten mit negativen Beträgen führen (sofern wir nicht überschuldet sind), und dass wir positive und negative Beträge statt zweier positiver Spalten haben.</p>
+<p>Anders gesagt: Keine Sorge, ihr lernt hier genau dasselbe, nur in moderner computergestützter Form. =)</p>
+</section>
+</main>
+<footer>
+<p>&copy; Ertugrul Söylemez</p>
+<p><a href="../about.html">Legal information</a></p>
+</footer>
+</body>
+</html>
