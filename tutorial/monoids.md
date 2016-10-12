@@ -225,16 +225,17 @@ semigroups looks like this:
 -- | Instances of this class should satisfy the following law:
 --
 --   * Associativity: for all x, y, z,
---     @(x `sappend` y) `sappend` z = x `sappend` (y `sappend` z)@.
+--     @(x <> y) <> z = x <> (y <> z)@.
 
 class Semigroup a where
     (<>) :: a -> a -> a
 ```
 
 However, we can save ourselves the trouble of defining this class.
-Since base 4.9 (GHC 8.0 and later) it comes as part of the base library.
-If your base library is older, well, you should update.  If for some
-reason you can't, you can install the [semigroups library] for now.
+Since base 4.9 (GHC 8.0 and later) it comes as part of the base library
+in the `Data.Semigroup` module.  If your base library is older, well,
+you should update.  If for some reason you can't, you can install the
+[semigroups library] for now.
 
 [semigroups library]: https://hackage.haskell.org/package/semigroups
 
@@ -251,11 +252,11 @@ myStimes n x =
       GT -> x <> myStimes (n - 1) x
 ```
 
-The reason for the name is, as you may have guessed already, that this
-function is actually predefined as `stimes`, except with an optimisation
-that relies heavily on the associativity contract, and that for many
-semigroups provides an exponential speedup (the square-and-multiply
-algorithm).
+The reason for the name `myStimes` is, as you may have guessed already,
+that this function is actually predefined as `stimes`, except with an
+optimisation that relies heavily on the associativity contract, and that
+for many semigroups provides an exponential speedup (the
+square-and-multiply algorithm).
 
 There is a downside to the class-based approach though: semigroups are
 now type-bound: you can only write one semigroup instance for `Integer`.
