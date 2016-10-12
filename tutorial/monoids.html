@@ -20,11 +20,13 @@
 <h1 class="title">The Monoid Tutorial (Draft)</h1>
 <p class="meta">by ertes, published on 2016-10-05</p>
 <nav id="toc">
+<h2>Table of contents</h2>
 <ul>
 <li><a href="#semigroups">Semigroups</a><ul>
-<li><a href="#the-semigroup-class">The Semigroup class</a></li>
 <li><a href="#semigroup-morphisms">Semigroup morphisms</a></li>
 </ul></li>
+<li><a href="#type-classes">Type classes</a></li>
+<li><a href="#monoids">Monoids</a></li>
 </ul>
 </nav>
 <p>This tutorial is not only educational material for you, but it’s also a playing field for me to explore just how far simple algebraic structures like monoids can be applied in the context of software design.</p>
@@ -137,17 +139,36 @@ exercise2f <span class="fu">=</span> <span class="dt">ASemigroup</span> f
 <span class="ot">exercise3b ::</span> <span class="dt">ASemigroup</span> (a <span class="ot">-&gt;</span> <span class="dt">Integer</span>)
 
 <span class="ot">exercise3c ::</span> <span class="dt">ASemigroup</span> (a <span class="ot">-&gt;</span> <span class="dt">IO</span> a)</code></pre></div>
-<section id="the-semigroup-class" class="level3">
-<h3>The Semigroup class</h3>
+<section id="semigroup-morphisms" class="level3">
+<h3>Semigroup morphisms</h3>
+<p>Remember that a semigroup is an associative binary function. We will now make sense of functions that <q>go from one semigroup to another</q>. Let’s take a look at the following function:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">listLen ::</span> [a] <span class="ot">-&gt;</span> <span class="dt">Integer</span>
+listLen <span class="fu">=</span> foldl&#39; (\c _ <span class="ot">-&gt;</span> <span class="dv">1</span> <span class="fu">+</span> c) <span class="dv">0</span></code></pre></div>
+<p>This function computes the length of the given list. If you look at the type, you can say that it goes from <code>[a]</code> to <code>Integer</code>, the underlying types of the semigroups <code>sAppend</code> and <code>sAdd</code>. But it also goes from <code>(++)</code> to <code>(+)</code>, the underlying functions of the semigroups, in the following sense:</p>
+<ul>
+<li>For all <code>xs</code> and <code>ys</code>: <code>listLen (xs ++ ys) = listLen xs + listLen ys</code>.</li>
+</ul>
+<p>We say that the <code>listLen</code> is a <em>semigroup morphism</em> or <em>structure-preserving map</em> from the semigroup <code>sAppend</code> to the semigroup <code>sAdd</code>.</p>
+<p>More generally let <code>(!) :: A -&gt; A -&gt; A</code> be a semigroup over <code>A</code> and <code>(#) :: B -&gt; B -&gt; B</code> be a semigroup over <code>B</code>, and let <code>f :: A -&gt; B</code>. Then <code>f</code> is called a <em>semigroup morphism</em> from <code>(!)</code> to <code>(#)</code> if and only if it satisfies the following law:</p>
+<ul>
+<li>Structure preservation: for all <code>x :: A</code> and <code>y :: A</code>: <code>f (x ! y) = f x # f y</code>.</li>
+</ul>
+<p>Much like the associativity law the structure preservation law is weak enough that we will find many semigroup morphisms, if we start actively looking for them.</p>
+<p>So what does this law actually mean, and why do we care? Structure preservation captures a very strong notion of locality and parallelism. If a semigroup morphism cannot behave differently under composition, it means that if it is passed a composite, it will use information of the individual components only locally, even though it does not necessarily know that it has received a composite. Category theorists sometimes call such a property <em>naturality</em>. Software engineers might associate this with <em>composability</em>.</p>
+<p>The parallelism notion is equally interesting, because it is not just an algebraic notion, but quite literally operational parallelism. If <code>f</code> is an expensive semigroup morphism, then instead of <code>f (x ! y)</code> you might actually consider computing <code>f x # f y</code> instead, because now you can compute <code>f x</code> and <code>f y</code> individually and in parallel. This is essentially how MapReduce works.</p>
+</section>
+</section>
+<section id="type-classes" class="level2">
+<h2>Type classes</h2>
 <p>We have talked about the weakness of the associativity law, of which one consequence is that there are loads and loads of semigroups. I don’t just mean that in the obvious mathematical sense (there are infinitely many of them), but that you actually find them all over your code, if you train your senses to see them. This also means that as you start abstracting over semigroups it may get tedious to pass them around as arguments all the time. Luckily Haskell has a rather convenient feature to pass stuff to functions implicitly: type classes. A class for semigroups looks like this:</p>
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | Instances of this class should satisfy the following law:</span>
 <span class="fu">--</span>
 <span class="co">--   * Associativity: for all x, y, z,</span>
-<span class="co">--     @(x `sappend` y) `sappend` z = x `sappend` (y `sappend` z)@.</span>
+<span class="co">--     @(x &lt;&gt; y) &lt;&gt; z = x &lt;&gt; (y &lt;&gt; z)@.</span>
 
 <span class="kw">class</span> <span class="dt">Semigroup</span> a <span class="kw">where</span>
 <span class="ot">    (&lt;&gt;) ::</span> a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> a</code></pre></div>
-<p>However, we can save ourselves the trouble of defining this class. Since base 4.9 (GHC 8.0 and later) it comes as part of the base library. If your base library is older, well, you should update. If for some reason you can’t, you can install the <a href="https://hackage.haskell.org/package/semigroups">semigroups library</a> for now.</p>
+<p>However, we can save ourselves the trouble of defining this class. Since base 4.9 (GHC 8.0 and later) it comes as part of the base library in the <code>Data.Semigroup</code> module. If your base library is older, well, you should update. If for some reason you can’t, you can install the <a href="https://hackage.haskell.org/package/semigroups">semigroups library</a> for now.</p>
 <p>With this class we can dispense with the (admittedly rather ugly) <code>ASemigroup</code> arguments and record wildcards when abstracting over semigroups:</p>
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">myStimes ::</span> (<span class="dt">Semigroup</span> a) <span class="ot">=&gt;</span> <span class="dt">Integer</span> <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> a
 myStimes n x <span class="fu">=</span>
@@ -155,7 +176,7 @@ myStimes n x <span class="fu">=</span>
       <span class="dt">LT</span> <span class="ot">-&gt;</span> error <span class="st">&quot;myStimes: Non-positive count&quot;</span>
       <span class="dt">EQ</span> <span class="ot">-&gt;</span> x
       <span class="dt">GT</span> <span class="ot">-&gt;</span> x <span class="fu">&lt;&gt;</span> myStimes (n <span class="fu">-</span> <span class="dv">1</span>) x</code></pre></div>
-<p>The reason for the name is, as you may have guessed already, that this function is actually predefined as <code>stimes</code>, except with an optimisation that relies heavily on the associativity contract, and that for many semigroups provides an exponential speedup (the square-and-multiply algorithm).</p>
+<p>The reason for the name <code>myStimes</code> is, as you may have guessed already, that this function is actually predefined as <code>stimes</code>, except with an optimisation that relies heavily on the associativity contract, and that for many semigroups provides an exponential speedup (the square-and-multiply algorithm).</p>
 <p>There is a downside to the class-based approach though: semigroups are now type-bound: you can only write one semigroup instance for <code>Integer</code>. To overcome this limitation we use <code>newtype</code> as usual, and the following types and instances are actually predefined:</p>
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">newtype</span> <span class="dt">Sum</span> a <span class="fu">=</span> <span class="dt">Sum</span> {<span class="ot"> getSum ::</span> a }
 
@@ -172,33 +193,24 @@ myStimes <span class="dv">5</span> (<span class="dt">Product</span> <span class=
 <p>Even though there are almost always multiple semigroups for any given type, for some types it’s convenient to just declare one of them as canonical and implement an instance for it. For example for lists we use the concatenation semigroup, and we would rarely choose another one, so we implement:</p>
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="dt">Semigroup</span> [a] <span class="kw">where</span>
     (<span class="fu">&lt;&gt;</span>) <span class="fu">=</span> (<span class="fu">++</span>)</code></pre></div>
+<p>From here on we will use type classes exclusively. In other words, we will discard the <code>ASemigroup</code> type in favour of the <code>Semigroup</code> class, and we will identify types with semigroups, so for example instead of referring to the <q>list of characters concatenation semigroup</q>, we will simply refer to the <q><code>[Char]</code> semigroup</q>.</p>
 </section>
-<section id="semigroup-morphisms" class="level3">
-<h3>Semigroup morphisms</h3>
-<p>Remember that a semigroup is an associative binary function. We will now make sense of functions that <q>go from one semigroup to another</q>. To do that we will briefly return to the <code>ASemigroup</code> type and the following two semigroups:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- Compose two integers by addition.</span>
-<span class="ot">sAdd ::</span> <span class="dt">ASemigroup</span> <span class="dt">Integer</span>
-sAdd <span class="fu">=</span> <span class="dt">ASemigroup</span> (<span class="fu">+</span>)
-
-<span class="co">-- Compose two lists by concatenation.</span>
-<span class="ot">sAppend ::</span> <span class="dt">ASemigroup</span> [a]
-sAppend <span class="fu">=</span> <span class="dt">ASemigroup</span> (<span class="fu">++</span>)</code></pre></div>
-<p>Now let’s take a look at the following function:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">listLen ::</span> [a] <span class="ot">-&gt;</span> <span class="dt">Integer</span>
-listLen <span class="fu">=</span> foldl&#39; (\c _ <span class="ot">-&gt;</span> <span class="dv">1</span> <span class="fu">+</span> c) <span class="dv">0</span></code></pre></div>
-<p>This function computes the length of the given list. If you look at the type, you can say that it goes from <code>[a]</code> to <code>Integer</code>, the underlying types of the two semigroups above. But it also goes from <code>(++)</code> to <code>(+)</code>, the underlying functions of the semigroups, in the following sense:</p>
+<section id="monoids" class="level2">
+<h2>Monoids</h2>
+<p>Now that we understand semigroups, monoids are just an extra law away: A monoid is a semigroup with a certain element called <code>mempty</code> that satisfies the following equations for all <code>x</code>:</p>
 <ul>
-<li>For all <code>xs</code> and <code>ys</code>: <code>listLen (xs ++ ys) = listLen xs + listLen ys</code>.</li>
+<li>Left identity: <code>mempty &lt;&gt; x = x</code>,</li>
+<li>Right identity: <code>x &lt;&gt; mempty = x</code>.</li>
 </ul>
-<p>We say that the <code>listLen</code> is a <em>semigroup morphism</em> or <em>structure-preserving map</em> from the semigroup <code>sAppend</code> to the semigroup <code>sAdd</code>.</p>
-<p>More generally let <code>(!) :: A -&gt; A -&gt; A</code> be a semigroup over <code>A</code> and <code>(#) :: B -&gt; B -&gt; B</code> be a semigroup over <code>B</code>, and let <code>f :: A -&gt; B</code>. Then <code>f</code> is called a <em>semigroup morphism</em> from <code>(!)</code> to <code>(#)</code> if and only if it satisfies the following law:</p>
-<ul>
-<li>Structure preservation: for all <code>x :: A</code> and <code>y :: A</code>: <code>f (x ! y) = f x # f y</code>.</li>
-</ul>
-<p>Much like the associativity law the structure preservation law is weak enough that we will find many semigroup morphisms, if we start actively looking for them.</p>
-<p>So what does this law actually mean, and why do we care? Structure preservation captures a very strong notion of locality and parallelism. If a semigroup morphism cannot behave differently under composition, it means that if it is passed a composite, it will use information of the individual components only locally, even though it does not necessarily know that it has received a composite. Category theorists sometimes call such a property <em>naturality</em>. Software engineers might associate this with <em>composability</em>.</p>
-<p>The parallelism notion is equally interesting, because it is not just an algebraic notion, but quite literally operational parallelism. If <code>f</code> is an expensive semigroup morphism, then instead of <code>f (x ! y)</code> you might actually consider computing <code>f x # f y</code> instead, because now you can compute <code>f x</code> and <code>f y</code> individually and in parallel. This is essentially how MapReduce works.</p>
-</section>
+<p>This law is called the identity law, and we will refer to <code>mempty</code> as the <em>identity</em> of the monoid. It is also sometimes called the <em>neutral element</em>, the <em>empty element</em>, the <em>zero</em> or the <em>one</em>, which indicate what the element denotes.</p>
+<p>The type class for monoids is predefined (of course) and straightforward… with a minor but rather unfortunate caveat: as of October 2016 (base 4.9) there is a historical accident in the base library. It <em>should</em> be defined like this:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">class</span> (<span class="dt">Semigroup</span> a) <span class="ot">=&gt;</span> <span class="dt">Monoid</span> a <span class="kw">where</span>
+<span class="ot">    mempty ::</span> a</code></pre></div>
+<p>But because the <code>Semigroup</code> class was actually added <em>after</em> the <code>Monoid</code> class, in the current base library it’s defined like this:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">class</span> <span class="dt">Monoid</span> a <span class="kw">where</span>
+<span class="ot">    mappend ::</span> a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> a
+<span class="ot">    mempty  ::</span> a</code></pre></div>
+<p>This may lead to some minor code duplication that in principle wouldn’t be necessary, but it’s not a serious problem, and it will likely be fixed in a future version.</p>
 </section>
 </main>
 <footer>
