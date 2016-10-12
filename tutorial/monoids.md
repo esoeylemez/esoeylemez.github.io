@@ -437,3 +437,29 @@ again.
 ``` haskell
 mempty = AndThen (pure ())
 ```
+
+Here is a family of semigroups that we have seen in exercise 2:
+
+``` haskell
+newtype Max a = Max { getMax :: a }
+
+instance (Ord a) => Semigroup (Max a) where
+    Max x <> Max y = Max (max x y)
+```
+
+Is `Max Word` a monoid?  Well, sure, the identity is `Max 0`, because
+taking the maximum between the smallest possible number and any other
+number always yields the other number.  Is `Max Int` a semigroup?  Yeah,
+but the identity is now target-specific, because it's the smallest
+possible `Int`.  But what about `Max Integer`?  Does that one have an
+identity?  Nope.  There is no smallest integer.  A `Max` semigroup is a
+monoid, if and only if it has a smallest element:
+
+``` haskell
+instance (Bounded a, Ord a) => Monoid (Max a) where
+    mappend = (<>)
+    mempty  = Max minBound
+```
+
+So sometimes a family of semigroups is partially a family of monoids,
+but needs extra constraints.

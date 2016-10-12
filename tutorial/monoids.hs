@@ -116,3 +116,12 @@ instance Monoid AndThen where
         AndThen (c1 >> c2)
 
     mempty = AndThen (pure ())
+
+newtype MyMax a = MyMax { fromMyMax :: a }
+
+instance (Ord a) => Semigroup (MyMax a) where
+    MyMax x <> MyMax y = MyMax (max x y)
+
+instance (Bounded a, Ord a) => Monoid (MyMax a) where
+    mappend = (<>)
+    mempty  = MyMax minBound
