@@ -1,10 +1,10 @@
 ---
-title:     The Monoid Tutorial (Draft)
-author:    ertes
-date:      2016-10-05
-lang:      en
-copyright: Ertugrul Söylemez
-want-toc:  yes
+title:     "The Monoid Tutorial (Draft)"
+author:    "ertes"
+date:      "2016-10-05"
+lang:      "en"
+copyright: "Ertugrul Söylemez"
+want-toc:  "yes"
 ...
 
 This tutorial is not only educational material for you, but it's also a
