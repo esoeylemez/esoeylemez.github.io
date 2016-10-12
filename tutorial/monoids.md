@@ -467,6 +467,12 @@ but needs extra constraints.
 **TODO**: Add exercises.
 
 
+Monoid morphisms
+----------------
+
+**TODO**: Write slightly more than a TODO remark.
+
+
 Monoidal design
 ---------------
 
