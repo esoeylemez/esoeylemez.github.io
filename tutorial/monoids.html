@@ -26,14 +26,17 @@
 <li><a href="#semigroup-morphisms">Semigroup morphisms</a></li>
 </ul></li>
 <li><a href="#type-classes">Type classes</a></li>
-<li><a href="#monoids">Monoids</a></li>
+<li><a href="#monoids">Monoids</a><ul>
+<li><a href="#monoid-morphisms">Monoid morphisms</a></li>
+<li><a href="#monoidal-design">Monoidal design</a></li>
+</ul></li>
 </ul>
 </nav>
 <p>This tutorial is not only educational material for you, but it’s also a playing field for me to explore just how far simple algebraic structures like monoids can be applied in the context of software design.</p>
 <p><a href="http://creativecommons.org/licenses/by-sa/4.0/"><img src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png" alt="Creative Commons Attribution-ShareAlike 4.0 International License" /></a> This work is licensed under a <a href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>
 <section id="semigroups" class="level2">
 <h2>Semigroups</h2>
-<p>Let’s build up to monoids first; don’t worry, it’s a relatively short build-up. A semigroup is an associative binary function:</p>
+<p>Let’s build up to monoids first; don’t worry, it’s a relatively short build-up. A <em>semigroup</em> is an associative binary function:</p>
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | Associative binary functions.  Values of this type should satisfy</span>
 <span class="co">-- the following law:</span>
 <span class="fu">--</span>
@@ -221,18 +224,39 @@ myStimes <span class="dv">5</span> (<span class="dt">Product</span> <span class=
     mappend (<span class="dt">Sum</span> x) (<span class="dt">Sum</span> y) <span class="fu">=</span> <span class="dt">Sum</span> (x <span class="fu">+</span> y)
     mempty <span class="fu">=</span> <span class="dt">Sum</span> <span class="dv">0</span></code></pre></div>
 <p>because adding 0 always yields the original number. Ok, let’s look at a slightly trickier example:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">newtype</span> <span class="dt">AndThen</span> <span class="fu">=</span>
-    <span class="dt">AndThen</span> {
-<span class="ot">      runAndThen ::</span> <span class="dt">IO</span> ()
-    }
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">newtype</span> <span class="dt">AndThen</span> <span class="fu">=</span> <span class="dt">AndThen</span> {<span class="ot"> runAndThen ::</span> <span class="dt">IO</span> () }
 
 <span class="kw">instance</span> <span class="dt">Monoid</span> <span class="dt">AndThen</span> <span class="kw">where</span>
     mappend (<span class="dt">AndThen</span> c1) (<span class="dt">AndThen</span> c2) <span class="fu">=</span>
         <span class="dt">AndThen</span> (c1 <span class="fu">&gt;&gt;</span> c2)
 
     mempty <span class="fu">=</span> _</code></pre></div>
-<p>This is supposedly the IO composition monoid. We have seen that it’s a semigroup (<code>sAndThen</code>), so all we need for it to become a monoid is an identity, an action that is neutral with respect to IO composition. Which action could we compose with any other action to yield the original action? The action that does nothing. If we compose any action <code>c</code> with an action that does nothing, the result is just <code>c</code> again.</p>
+<p>This is supposedly the IO composition monoid. We have seen that it’s a semigroup (<code>sAndThen</code>), so all we need for it to become a monoid is an identity, an action that is neutral with respect to IO composition. Which action could we compose with any other action to yield the original action? The action that does nothing. If we compose any action <code>c</code> with the action that does nothing, the result is just <code>c</code> again.</p>
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">mempty <span class="fu">=</span> <span class="dt">AndThen</span> (pure ())</code></pre></div>
+<p>Here is a family of semigroups that we have seen in exercise 2:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">newtype</span> <span class="dt">Max</span> a <span class="fu">=</span> <span class="dt">Max</span> {<span class="ot"> getMax ::</span> a }
+
+<span class="kw">instance</span> (<span class="dt">Ord</span> a) <span class="ot">=&gt;</span> <span class="dt">Semigroup</span> (<span class="dt">Max</span> a) <span class="kw">where</span>
+    <span class="dt">Max</span> x <span class="fu">&lt;&gt;</span> <span class="dt">Max</span> y <span class="fu">=</span> <span class="dt">Max</span> (max x y)</code></pre></div>
+<p>Is <code>Max Word</code> a monoid? Well, sure, the identity is <code>Max 0</code>, because taking the maximum between the smallest possible number and any other number always yields the other number. Is <code>Max Int</code> a semigroup? Yeah, but the identity is now target-specific, because it’s the smallest possible <code>Int</code>. But what about <code>Max Integer</code>? Does that one have an identity? Nope. There is no smallest integer. A <code>Max</code> semigroup is a monoid, if and only if it has a smallest element:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> (<span class="dt">Bounded</span> a, <span class="dt">Ord</span> a) <span class="ot">=&gt;</span> <span class="dt">Monoid</span> (<span class="dt">Max</span> a) <span class="kw">where</span>
+    mappend <span class="fu">=</span> (<span class="fu">&lt;&gt;</span>)
+    mempty  <span class="fu">=</span> <span class="dt">Max</span> minBound</code></pre></div>
+<p>So sometimes a family of semigroups is partially a family of monoids, but needs extra constraints.</p>
+<p><strong>TODO</strong>: Add exercises.</p>
+<section id="monoid-morphisms" class="level3">
+<h3>Monoid morphisms</h3>
+<p><strong>TODO</strong></p>
+</section>
+<section id="monoidal-design" class="level3">
+<h3>Monoidal design</h3>
+<p>There are a number of reasons why as a programmer one may find monoids worth studying:</p>
+<ul>
+<li><p>As a design pattern monoids capture the notion of <em>compositional design</em> (as opposed to monolithic design). The key feature that follows from the monoid laws is that individual components must be self-contained in a strong sense, which enables local reasoning.</p></li>
+<li><p>Monoid morphisms capture the notion of <em>extensibility</em>, but unlike traditional extension mechanisms monoid morphisms are strictly separate from the monoids they map. In other words an extension will never change existing code.</p></li>
+</ul>
+<p>Together these two features provide true separation of concerns. Have you ever called your code <q>done</q>? Confidently? Now you can.</p>
+</section>
 </section>
 </main>
 <footer>
