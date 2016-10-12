@@ -434,7 +434,7 @@ semigroup (`sAndThen`), so all we need for it to become a monoid is an
 identity, an action that is neutral with respect to IO composition.
 Which action could we compose with any other action to yield the
 original action?  The action that does nothing.  If we compose any
-action `c` with an action that does nothing, the result is just `c`
+action `c` with the action that does nothing, the result is just `c`
 again.
 
 ``` haskell
