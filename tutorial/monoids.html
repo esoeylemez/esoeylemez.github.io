@@ -156,6 +156,7 @@ listLen <span class="fu">=</span> foldl&#39; (\c _ <span class="ot">-&gt;</span>
 <p>Much like the associativity law the structure preservation law is weak enough that we will find many semigroup morphisms, if we start actively looking for them.</p>
 <p>So what does this law actually mean, and why do we care? Structure preservation captures a very strong notion of locality and parallelism. If a semigroup morphism cannot behave differently under composition, it means that if it is passed a composite, it will use information of the individual components only locally, even though it does not necessarily know that it has received a composite. Category theorists sometimes call such a property <em>naturality</em>. Software engineers might associate this with <em>composability</em>.</p>
 <p>The parallelism notion is equally interesting, because it is not just an algebraic notion, but quite literally operational parallelism. If <code>f</code> is an expensive semigroup morphism, then instead of <code>f (x ! y)</code> you might actually consider computing <code>f x # f y</code> instead, because now you can compute <code>f x</code> and <code>f y</code> individually and in parallel. This is essentially how MapReduce works.</p>
+<p><strong>TODO</strong>: Add exercises.</p>
 </section>
 </section>
 <section id="type-classes" class="level2">
@@ -203,14 +204,35 @@ myStimes <span class="dv">5</span> (<span class="dt">Product</span> <span class=
 <li>Right identity: <code>x &lt;&gt; mempty = x</code>.</li>
 </ul>
 <p>This law is called the identity law, and we will refer to <code>mempty</code> as the <em>identity</em> of the monoid. It is also sometimes called the <em>neutral element</em>, the <em>empty element</em>, the <em>zero</em> or the <em>one</em>, which indicate what the element denotes.</p>
-<p>The type class for monoids is predefined (of course) and straightforward… with a minor but rather unfortunate caveat: as of October 2016 (base 4.9) there is a historical accident in the base library. It <em>should</em> be defined like this:</p>
+<p>The type class for monoids is predefined (of course) and straightforward… with a minor but rather unfortunate caveat: as of October 2016 (base 4.9) there is a historical accident in the base library. It <em>should</em> be defined like this,</p>
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">class</span> (<span class="dt">Semigroup</span> a) <span class="ot">=&gt;</span> <span class="dt">Monoid</span> a <span class="kw">where</span>
 <span class="ot">    mempty ::</span> a</code></pre></div>
-<p>But because the <code>Semigroup</code> class was actually added <em>after</em> the <code>Monoid</code> class, in the current base library it’s defined like this:</p>
+<p>but because the <code>Semigroup</code> class was actually added long after the <code>Monoid</code> class, in the current base library it’s defined like this:</p>
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">class</span> <span class="dt">Monoid</span> a <span class="kw">where</span>
 <span class="ot">    mappend ::</span> a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> a
 <span class="ot">    mempty  ::</span> a</code></pre></div>
 <p>This may lead to some minor code duplication that in principle wouldn’t be necessary, but it’s not a serious problem, and it will likely be fixed in a future version.</p>
+<p>Many semigroups are also monoids. For example the list concatenation semigroup is also a monoid,</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="dt">Monoid</span> [a] <span class="kw">where</span>
+    mappend <span class="fu">=</span> (<span class="fu">++</span>)
+    mempty <span class="fu">=</span> []</code></pre></div>
+<p>because concatenation with the empty list always yields the original list. The summation semigroup is also a monoid,</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> (<span class="dt">Num</span> a) <span class="ot">=&gt;</span> <span class="dt">Monoid</span> (<span class="dt">Sum</span> a) <span class="kw">where</span>
+    mappend (<span class="dt">Sum</span> x) (<span class="dt">Sum</span> y) <span class="fu">=</span> <span class="dt">Sum</span> (x <span class="fu">+</span> y)
+    mempty <span class="fu">=</span> <span class="dt">Sum</span> <span class="dv">0</span></code></pre></div>
+<p>because adding 0 always yields the original number. Ok, let’s look at a slightly trickier example:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">newtype</span> <span class="dt">AndThen</span> <span class="fu">=</span>
+    <span class="dt">AndThen</span> {
+<span class="ot">      runAndThen ::</span> <span class="dt">IO</span> ()
+    }
+
+<span class="kw">instance</span> <span class="dt">Monoid</span> <span class="dt">AndThen</span> <span class="kw">where</span>
+    mappend (<span class="dt">AndThen</span> c1) (<span class="dt">AndThen</span> c2) <span class="fu">=</span>
+        <span class="dt">AndThen</span> (c1 <span class="fu">&gt;&gt;</span> c2)
+
+    mempty <span class="fu">=</span> _</code></pre></div>
+<p>This is supposedly the IO composition monoid. We have seen that it’s a semigroup (<code>sAndThen</code>), so all we need for it to become a monoid is an identity, an action that is neutral with respect to IO composition. Which action could we compose with any other action to yield the original action? The action that does nothing. If we compose any action <code>c</code> with an action that does nothing, the result is just <code>c</code> again.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">mempty <span class="fu">=</span> <span class="dt">AndThen</span> (pure ())</code></pre></div>
 </section>
 </main>
 <footer>
