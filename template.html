@@ -1,25 +1,25 @@
 <!DOCTYPE html>
 <html$if(lang)$ lang="$lang$"$endif$$if(dir)$ dir="$dir$"$endif$>
 <head>
-    <title>$pagetitle$ – ertes.eu</title>
-    <meta charset="utf-8" />
-    <meta name="generator" content="pandoc" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+<title>$pagetitle$ – ertes.eu</title>
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
 $for(author-meta)$
-    <meta name="author" content="$author-meta$" />
+<meta name="author" content="$author-meta$" />
 $endfor$
 $if(date-meta)$
-    <meta name="dcterms.date" content="$date-meta$" />
+<meta name="dcterms.date" content="$date-meta$" />
 $endif$
 $for(css)$
-    <link rel="stylesheet" href="$css$" />
+<link rel="stylesheet" href="$basedir$$css$" />
 $endfor$
 $if(math)$
 $math$
 $endif$
-    <!--[if lt IE 9]>
-        <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
-    <![endif]-->
+<!--[if lt IE 9]>
+<script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+<![endif]-->
 $for(header-includes)$
 $header-includes$
 $endfor$
@@ -28,22 +28,17 @@ $endfor$
 $for(include-before)$
 $include-before$
 $endfor$
-$if(title)$
 <header>
-<p class="site-title"><a href="about.html">ertes.eu</a></p>
+<p class="site-title"><a href="$basedir$index.html">ertes.eu</a></p>
 </header>
+<main role="main">
+$if(title)$
 <h1 class="title">$title$</h1>
 $endif$
 $if(author)$
-  $if(date)$
-    <p class="meta">by $for(author)$$author$$sep$, $endfor$, published $date$</p>
-  $else$
-    <p class="meta">Published by $for(author)$$author$$sep$, $endfor$</p>
-  $endif$
+<p class="meta">by $for(author)$$author$$sep$, $endfor$$if(date)$, published on $date$$endif$</p>
 $else$
-  $if(date)$
-    <p class="meta">Published on $date$</p>
-  $endif$
+$if(date)$<p class="meta">published on $date$</p>$endif$
 $endif$
 $if(want-toc)$
 <nav id="$idprefix$toc">
@@ -51,11 +46,12 @@ $toc$
 </nav>
 $endif$
 $body$
+</main>
 <footer>
 $if(copyright)$
 <p>&copy; $copyright$</p>
 $endif$
-<p><a href="about.html">Legal information</a></p>
+<p><a href="$basedir$about.html">Legal information</a></p>
 </footer>
 $for(include-after)$
 $include-after$

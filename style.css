@@ -6,9 +6,15 @@ html {
 }
 
 body {
-    margin: 0 auto;
+    margin: 0.5em auto;
     max-width: 80ex;
-    padding: 0.4em 1ex;
+    padding: 0 1ex;
+}
+
+@media screen and (min-width: 480px) {
+    body {
+        margin: 1em auto;
+    }
 }
 
 
@@ -16,13 +22,13 @@ body {
 
 header {
     background: #ddd;
-    margin: 0;
+    margin: 0 0 1em;
     padding: 0;
     text-align: right;
 }
 
 header .site-title {
-    font-size: 150%;
+    font-size: 130%;
     font-stretch: condensed;
     font-style: italic;
     margin: 0;
@@ -36,25 +42,34 @@ header a:visited {
 
 @media screen and (min-width: 480px) {
     header {
-        background: #fff;
+        background: hsla(0, 0%, 100%, 0);
         float: right;
         margin: 0 0 0.4em 2ex;
+    }
+
+    header .site-title {
+        font-size: 140%;
     }
 }
 
 
 /*** Content ***/
 
+section {
+    margin: 3em 0;
+}
+
 h1 {
-    font-size: 170%;
+    font-size: 150%;
     font-stretch: condensed;
     font-weight: normal;
-    margin: 0.4em 0 1em;
+    margin: 0 0 1em;
     padding: 0;
 }
 
 @media screen and (min-width: 480px) {
     h1 {
+        font-size: 170%;
         margin: 0;
     }
 }
@@ -62,13 +77,13 @@ h1 {
 h2 {
     font-size: 150%;
     font-weight: bold;
-    margin: 1.8em 0 0.5em;
+    margin: 0 0 0.5em;
 }
 
 h3 {
     font-size: 130%;
     font-weight: bold;
-    margin: 1.2em 0 0.5em;
+    margin: 0 0 0.5em;
 }
 
 .meta {
@@ -79,15 +94,41 @@ dd, li, p {
     text-align: justify;
 }
 
+dd {
+    box-sizing: border-box;
+    margin: 0.5em 0 0;
+    padding: 0 0 0 4ex;
+}
+
+dl {
+    padding: 0.1em 0;
+}
+
+dt {
+    box-sizing: border-box;
+    clear: left;
+    float: left;
+    margin: 0.5em 1.5ex 0 0;
+    padding: 0;
+}
+
 p {
-    margin: 0.4em 0 1em;
+    margin: 0 0 0.8em;
+    padding: 0;
+}
+
+p img {
+    clear: left;
+    float: left;
+    margin: 0.2em 1.5ex 0.2em 0;
     padding: 0;
 }
 
 pre {
+    border: 1px solid #aaa;
     font-family: "DejaVu Sans Mono", dejavu-mono, monospace;
     margin: 1em 0 1em 3ex;
-    padding: 0;
+    padding: 0.5em 1ex;
 }
 
 
@@ -138,8 +179,17 @@ html[lang=de] q {
 
 /*** Code highlighting ***/
 
+pre .co {
+    color: #444;
+    font-size: 90%;
+}
+
 pre .dt {
-    font-weight: bold;
+    color: #060;
+}
+
+pre .fu {
+    color: #00c;
 }
 
 pre .kw {
