@@ -1,7 +1,7 @@
 ---
 title:     "The Monoid Tutorial (Draft)"
 author:    "ertes"
-date:      "2016-10-05"
+date:      "2016-10-05 (draft)"
 lang:      "en"
 copyright: "Ertugrul Söylemez"
 want-toc:  "yes"
