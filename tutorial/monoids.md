@@ -164,47 +164,47 @@ compute the following instead,
 
 which only cost three multiplications.
 
-**Exercise 1**:  Construct a semigroup for the type `()`:
+**Exercise Sg1**:  Construct a semigroup for the type `()`:
 
 ``` haskell
-exercise1 :: ASemigroup ()
+sUnit :: ASemigroup ()
 ```
 
-**Exercise 2**:  Which of the following are valid semigroups?
+**Exercise Sg2**:  Which of the following are valid semigroups?
 
 ``` haskell
-exercise2a :: ASemigroup (IO a)
-exercise2a = ASemigroup (\c1 c2 -> c2 >> c1)
+exerciseSg2a :: ASemigroup (IO a)
+exerciseSg2a = ASemigroup (\c1 c2 -> c2 >> c1)
 
-exercise2b :: ASemigroup Rational
-exercise2b = ASemigroup (/)
+exerciseSg2b :: ASemigroup Rational
+exerciseSg2b = ASemigroup (/)
 
-exercise2c :: ASemigroup (Integer, Integer)
-exercise2c = ASemigroup (\(x1, x2) (y1, y2) -> (x1 + y2, x2 + y1))
+exerciseSg2c :: ASemigroup (Integer, Integer)
+exerciseSg2c = ASemigroup (\(x1, x2) (y1, y2) -> (x1 + y2, x2 + y1))
 
-exercise2d :: ASemigroup Integer
-exercise2d = ASemigroup max
+exerciseSg2d :: ASemigroup Integer
+exerciseSg2d = ASemigroup max
 
-exercise2e :: ASemigroup Integer
-exercise2e = ASemigroup (\x y -> x * (-y))
+exerciseSg2e :: ASemigroup Integer
+exerciseSg2e = ASemigroup (\x y -> x * (-y))
 
-exercise2f :: ASemigroup [a]
-exercise2f = ASemigroup f
+exerciseSg2f :: ASemigroup [a]
+exerciseSg2f = ASemigroup f
     where
     f xs     []     = xs
     f []     ys     = ys
     f (x:xs) (y:ys) = x : y : f xs ys
 ```
 
-**Exercise 3 (hard)**:  Construct interesting semigroups for the
+**Exercise Sg3 (hard)**:  Construct interesting semigroups for the
 following types:
 
 ``` haskell
-exercise3a :: ASemigroup (a -> a)
+exerciseSg3a :: ASemigroup (a -> a)
 
-exercise3b :: ASemigroup (a -> Integer)
+exerciseSg3b :: ASemigroup (a -> Integer)
 
-exercise3c :: ASemigroup (a -> IO a)
+exerciseSg3c :: ASemigroup (a -> IO a)
 ```
 
 
@@ -438,7 +438,7 @@ again.
 mempty = AndThen (pure ())
 ```
 
-Here is a family of semigroups that we have seen in exercise 2:
+Here is a family of semigroups that we have seen in exercise Sg2:
 
 ``` haskell
 newtype Max a = Max { getMax :: a }

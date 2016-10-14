@@ -55,39 +55,42 @@ stimes' sg@ASemigroup{..} n x =
       EQ -> x
       GT -> x `sappend` stimes' sg (n - 1) x
 
-exercise1 :: ASemigroup ()
-exercise1 = ASemigroup (\_ _ -> ())
+sUnit :: ASemigroup ()
+sUnit = ASemigroup (\_ _ -> ())
 
-exercise2a :: ASemigroup (IO a)
-exercise2a = ASemigroup (\c1 c2 -> c2 >> c1)
+exerciseSg2a :: ASemigroup (IO a)
+exerciseSg2a = ASemigroup (\c1 c2 -> c2 >> c1)
 
-exercise2b :: ASemigroup Rational
-exercise2b = ASemigroup (/)
+exerciseSg2b :: ASemigroup Rational
+exerciseSg2b = ASemigroup (/)
 
-exercise2c :: ASemigroup (Integer, Integer)
-exercise2c = ASemigroup (\(x1, x2) (y1, y2) -> (x1 + y2, x2 + y1))
+exerciseSg2c :: ASemigroup (Integer, Integer)
+exerciseSg2c = ASemigroup (\(x1, x2) (y1, y2) -> (x1 + y2, x2 + y1))
 
-exercise2d :: ASemigroup Integer
-exercise2d = ASemigroup max
+exerciseSg2d :: ASemigroup Integer
+exerciseSg2d = ASemigroup max
 
-exercise2e :: ASemigroup Integer
-exercise2e = ASemigroup (\x y -> x * (-y))
+exerciseSg2e :: ASemigroup Integer
+exerciseSg2e = ASemigroup (\x y -> x * (-y))
 
-exercise2f :: ASemigroup [a]
-exercise2f = ASemigroup f
+exerciseSg2f :: ASemigroup [a]
+exerciseSg2f = ASemigroup f
     where
     f xs     []     = xs
     f []     ys     = ys
     f (x:xs) (y:ys) = x : y : f xs ys
 
-exercise3a :: ASemigroup (a -> a)
-exercise3a = ASemigroup (.)
+exerciseSg3a :: ASemigroup (a -> a)
+exerciseSg3a = ASemigroup (.)
 
-exercise3b :: ASemigroup (a -> Integer)
-exercise3b = ASemigroup (\f g x -> f x + g x)
+exerciseSg3b :: ASemigroup (a -> Integer)
+exerciseSg3b = ASemigroup (\f g x -> f x + g x)
 
-exercise3c :: ASemigroup (a -> IO a)
-exercise3c = ASemigroup (\f g x -> f x >>= g)
+exerciseSg3c :: ASemigroup (a -> IO a)
+exerciseSg3c = ASemigroup (\f g x -> f x >>= g)
+
+exerciseSgM1 :: () -> Integer
+exerciseSgM1 _ = 0
 
 myStimes :: (Semigroup a) => Integer -> a -> a
 myStimes n x =
