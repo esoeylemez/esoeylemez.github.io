@@ -261,7 +261,19 @@ might actually consider computing `f x # f y` instead, because now you
 can compute `f x` and `f y` individually and in parallel.  This is
 essentially how *MapReduce* works.
 
-**TODO**: Add exercises.
+**Exercise SgM1**: Is there a semigroup morphism from `sUnit` (exercise
+Sg1) to `sAdd`?  If yes, implement it.
+
+**Exercise SgM2**: Is there a semigroup morphism from `sAdd` to
+`exerciseSg2d`?  If yes, implement it.
+
+**Exercise SgM3 (hard)**: Given three arbitrary semigroups `s1`, `s2`
+and `s3`, an arbitrary semigroup morphism `f` from `s1` to `s2`, and an
+arbitrary semigroup morphism `g` from `s2` to `s3`, is `g . f` a
+semigroup morphism?
+
+**Exercise SgM4 (hard)**: Is there a semigroup morphism from `sAppend`
+to `sMult` that is not a constant function?  If yes, implement it.
 
 
 Type classes
