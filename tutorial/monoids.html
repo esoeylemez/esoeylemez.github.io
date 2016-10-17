@@ -32,6 +32,7 @@
 </ul>
 </nav>
 <p>This tutorial is not only educational material for you, but it’s also a playing field for me to explore just how far simple algebraic structures like monoids can be applied in the context of software design.</p>
+<p>Exercises are provided for you to practice. Some of those are marked as <em>hard</em>, which means that they can be challenging to solve under the assumption that the reader has no math training. In general you should still try your best to solve them. Some exercises are marked as <em>super-hard</em>, which means that they are mostly for your and my entertainment, and you don’t need to worry too much, if you can’t solve them.</p>
 <p><a href="http://creativecommons.org/licenses/by-sa/4.0/"><img src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png" alt="Creative Commons Attribution-ShareAlike 4.0 International License" /></a> This work is licensed under a <a href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>
 <section id="semigroups" class="level2">
 <h2>Semigroups</h2>
@@ -111,36 +112,36 @@ stimes&#39; andThen <span class="dv">4</span> (putStrLn <span class="st">&quot;b
 <span class="fu">=</span> <span class="dv">625</span> <span class="fu">*</span> <span class="dv">625</span>
 <span class="fu">=</span> <span class="dv">390625</span></code></pre></div>
 <p>which only cost three multiplications.</p>
-<p><strong>Exercise 1</strong>: Construct a semigroup for the type <code>()</code>:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">exercise1 ::</span> <span class="dt">ASemigroup</span> ()</code></pre></div>
-<p><strong>Exercise 2</strong>: Which of the following are valid semigroups?</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">exercise2a ::</span> <span class="dt">ASemigroup</span> (<span class="dt">IO</span> a)
-exercise2a <span class="fu">=</span> <span class="dt">ASemigroup</span> (\c1 c2 <span class="ot">-&gt;</span> c2 <span class="fu">&gt;&gt;</span> c1)
+<p><strong>Exercise Sg1</strong>: Construct a semigroup for the type <code>()</code>:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">sUnit ::</span> <span class="dt">ASemigroup</span> ()</code></pre></div>
+<p><strong>Exercise Sg2</strong>: Which of the following are valid semigroups?</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">exerciseSg2a ::</span> <span class="dt">ASemigroup</span> (<span class="dt">IO</span> a)
+exerciseSg2a <span class="fu">=</span> <span class="dt">ASemigroup</span> (\c1 c2 <span class="ot">-&gt;</span> c2 <span class="fu">&gt;&gt;</span> c1)
 
-<span class="ot">exercise2b ::</span> <span class="dt">ASemigroup</span> <span class="dt">Rational</span>
-exercise2b <span class="fu">=</span> <span class="dt">ASemigroup</span> (<span class="fu">/</span>)
+<span class="ot">exerciseSg2b ::</span> <span class="dt">ASemigroup</span> <span class="dt">Rational</span>
+exerciseSg2b <span class="fu">=</span> <span class="dt">ASemigroup</span> (<span class="fu">/</span>)
 
-<span class="ot">exercise2c ::</span> <span class="dt">ASemigroup</span> (<span class="dt">Integer</span>, <span class="dt">Integer</span>)
-exercise2c <span class="fu">=</span> <span class="dt">ASemigroup</span> (\(x1, x2) (y1, y2) <span class="ot">-&gt;</span> (x1 <span class="fu">+</span> y2, x2 <span class="fu">+</span> y1))
+<span class="ot">exerciseSg2c ::</span> <span class="dt">ASemigroup</span> (<span class="dt">Integer</span>, <span class="dt">Integer</span>)
+exerciseSg2c <span class="fu">=</span> <span class="dt">ASemigroup</span> (\(x1, x2) (y1, y2) <span class="ot">-&gt;</span> (x1 <span class="fu">+</span> y2, x2 <span class="fu">+</span> y1))
 
-<span class="ot">exercise2d ::</span> <span class="dt">ASemigroup</span> <span class="dt">Integer</span>
-exercise2d <span class="fu">=</span> <span class="dt">ASemigroup</span> max
+<span class="ot">exerciseSg2d ::</span> <span class="dt">ASemigroup</span> <span class="dt">Integer</span>
+exerciseSg2d <span class="fu">=</span> <span class="dt">ASemigroup</span> max
 
-<span class="ot">exercise2e ::</span> <span class="dt">ASemigroup</span> <span class="dt">Integer</span>
-exercise2e <span class="fu">=</span> <span class="dt">ASemigroup</span> (\x y <span class="ot">-&gt;</span> x <span class="fu">*</span> (<span class="fu">-</span>y))
+<span class="ot">exerciseSg2e ::</span> <span class="dt">ASemigroup</span> <span class="dt">Integer</span>
+exerciseSg2e <span class="fu">=</span> <span class="dt">ASemigroup</span> (\x y <span class="ot">-&gt;</span> x <span class="fu">*</span> (<span class="fu">-</span>y))
 
-<span class="ot">exercise2f ::</span> <span class="dt">ASemigroup</span> [a]
-exercise2f <span class="fu">=</span> <span class="dt">ASemigroup</span> f
+<span class="ot">exerciseSg2f ::</span> <span class="dt">ASemigroup</span> [a]
+exerciseSg2f <span class="fu">=</span> <span class="dt">ASemigroup</span> f
     <span class="kw">where</span>
     f xs     []     <span class="fu">=</span> xs
     f []     ys     <span class="fu">=</span> ys
     f (x<span class="fu">:</span>xs) (y<span class="fu">:</span>ys) <span class="fu">=</span> x <span class="fu">:</span> y <span class="fu">:</span> f xs ys</code></pre></div>
-<p><strong>Exercise 3 (hard)</strong>: Construct interesting semigroups for the following types:</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">exercise3a ::</span> <span class="dt">ASemigroup</span> (a <span class="ot">-&gt;</span> a)
+<p><strong>Exercise Sg3 (hard)</strong>: Construct interesting semigroups for the following types:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">exerciseSg3a ::</span> <span class="dt">ASemigroup</span> (a <span class="ot">-&gt;</span> a)
 
-<span class="ot">exercise3b ::</span> <span class="dt">ASemigroup</span> (a <span class="ot">-&gt;</span> <span class="dt">Integer</span>)
+<span class="ot">exerciseSg3b ::</span> <span class="dt">ASemigroup</span> (a <span class="ot">-&gt;</span> <span class="dt">Integer</span>)
 
-<span class="ot">exercise3c ::</span> <span class="dt">ASemigroup</span> (a <span class="ot">-&gt;</span> <span class="dt">IO</span> a)</code></pre></div>
+<span class="ot">exerciseSg3c ::</span> <span class="dt">ASemigroup</span> (a <span class="ot">-&gt;</span> <span class="dt">IO</span> a)</code></pre></div>
 <section id="semigroup-morphisms" class="level3">
 <h3>Semigroup morphisms</h3>
 <p>Remember that a semigroup is an associative binary function. We will now make sense of functions that <q>go from one semigroup to another</q>. Let’s take a look at the following function:</p>
@@ -157,8 +158,11 @@ listLen <span class="fu">=</span> foldl&#39; (\c _ <span class="ot">-&gt;</span>
 </ul>
 <p>Much like the associativity law the structure preservation law is weak enough that we will find many semigroup morphisms, if we start actively looking for them.</p>
 <p>So what does this law actually mean, and why do we care? Structure preservation captures a very strong notion of locality and parallelism. If a semigroup morphism cannot behave differently under composition, it means that if it is passed a composite, it will use information of the individual components only locally, even though it does not necessarily know that it has received a composite. Category theorists sometimes call such a property <em>naturality</em>. Software engineers might associate this with <em>composability</em>.</p>
-<p>The parallelism notion is equally interesting, because it is not just an algebraic notion, but quite literally operational parallelism. If <code>f</code> is an expensive semigroup morphism, then instead of <code>f (x ! y)</code> you might actually consider computing <code>f x # f y</code> instead, because now you can compute <code>f x</code> and <code>f y</code> individually and in parallel. This is essentially how MapReduce works.</p>
-<p><strong>TODO</strong>: Add exercises.</p>
+<p>The parallelism notion is equally interesting, because it is not just an algebraic notion, but quite literally operational parallelism. If <code>f</code> is an expensive semigroup morphism, then instead of <code>f (x ! y)</code> you might actually consider computing <code>f x # f y</code> instead, because now you can compute <code>f x</code> and <code>f y</code> individually and in parallel. This is essentially how <em>MapReduce</em> works.</p>
+<p><strong>Exercise SgM1</strong>: Is there a semigroup morphism from <code>sUnit</code> (exercise Sg1) to <code>sAdd</code>? If yes, implement it.</p>
+<p><strong>Exercise SgM2</strong>: Is there a semigroup morphism from <code>sAdd</code> to <code>exerciseSg2d</code>? If yes, implement it.</p>
+<p><strong>Exercise SgM3 (hard)</strong>: Given three arbitrary semigroups <code>s1</code>, <code>s2</code> and <code>s3</code>, an arbitrary semigroup morphism <code>f</code> from <code>s1</code> to <code>s2</code>, and an arbitrary semigroup morphism <code>g</code> from <code>s2</code> to <code>s3</code>, is <code>g . f</code> a semigroup morphism?</p>
+<p><strong>Exercise SgM4 (hard)</strong>: Is there a semigroup morphism from <code>sAppend</code> to <code>sMult</code> that is not a constant function? If yes, implement it.</p>
 </section>
 </section>
 <section id="type-classes" class="level2">
@@ -230,9 +234,9 @@ myStimes <span class="dv">5</span> (<span class="dt">Product</span> <span class=
         <span class="dt">AndThen</span> (c1 <span class="fu">&gt;&gt;</span> c2)
 
     mempty <span class="fu">=</span> _</code></pre></div>
-<p>This is supposedly the IO composition monoid. We have seen that it’s a semigroup (<code>sAndThen</code>), so all we need for it to become a monoid is an identity, an action that is neutral with respect to IO composition. Which action could we compose with any other action to yield the original action? The action that does nothing. If we compose any action <code>c</code> with the action that does nothing, the result is just <code>c</code> again.</p>
+<p>This is supposedly the IO composition monoid. We have seen that it’s a semigroup (<code>sAndThen</code>), so all we need for it to become a monoid is an identity, an action that is neutral with respect to IO composition. Which action could we compose with any other action to yield the original action? How about the action that does nothing? If we compose any action <code>c</code> with the action that does nothing, the result is just <code>c</code> again.</p>
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">mempty <span class="fu">=</span> <span class="dt">AndThen</span> (pure ())</code></pre></div>
-<p>Here is a family of semigroups that we have seen in exercise 2:</p>
+<p>Here is a family of semigroups that we have seen in exercise Sg2:</p>
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">newtype</span> <span class="dt">Max</span> a <span class="fu">=</span> <span class="dt">Max</span> {<span class="ot"> getMax ::</span> a }
 
 <span class="kw">instance</span> (<span class="dt">Ord</span> a) <span class="ot">=&gt;</span> <span class="dt">Semigroup</span> (<span class="dt">Max</span> a) <span class="kw">where</span>
