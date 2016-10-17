@@ -29,8 +29,8 @@ Ledger-Tutorial (German)
 [Teil 2: Buchführungsperioden](tutorial/ledger-02-perioden.html):
   : Periodische Buchführung mit Erfolgskonten
 
-Drafs
------
+Drafts
+------
 
 [The Monoid Tutorial](tutorial/monoids.html):
   : Monoids as a programming pattern
