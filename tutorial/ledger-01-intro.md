@@ -38,10 +38,8 @@ gehen, muss es aber nicht.  Genau so gut können wir auch gierig sein
 nach
 
   * Filmen oder Musik,
-  * sozialen Kontakten,
   * Karten in einem Rollenspiel,
-  * Kunstwerken oder Büchern,
-  * Herausforderungen.
+  * Kunstwerken oder Büchern, etc.
 
 Wir können auch von einer oder mehrerer dieser *Resourcen* eine
 beachtliche Sammlung vorweisen, haben aber lange den Überblick verloren,
