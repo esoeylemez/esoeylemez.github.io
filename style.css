@@ -6,6 +6,8 @@ html {
 }
 
 body {
+    counter-reset: sec1;
+    counter-reset: sec2;
     margin: 0.5em auto;
     max-width: 80ex;
     padding: 0 1ex;
@@ -69,6 +71,14 @@ section {
     margin: 3em 0;
 }
 
+section section {
+    margin: 2.5em 0;
+}
+
+section section section {
+    margin: 1.7em 0;
+}
+
 nav {
     background: rgba(0, 0, 0, 0.1);
     border-left: 1ex solid #aaa;
@@ -126,6 +136,31 @@ h3 {
     margin: 0 0 0.5em;
 }
 
+h4 {
+    font-size: 100%;
+    font-weight: bold;
+    margin: 1em 0;
+}
+
+#content    { counter-reset: sec1; }
+#content h2 { counter-reset: sec2; }
+#content h3 { counter-reset: sec3; }
+
+#content h2::before {
+    content: counter(sec1) ". ";
+    counter-increment: sec1;
+}
+
+#content h3::before {
+    content: counter(sec1) "." counter(sec2) ". ";
+    counter-increment: sec2;
+}
+
+#content h4::before {
+    content: counter(sec1) "." counter(sec2) "." counter(sec3) ". ";
+    counter-increment: sec3;
+}
+
 .meta {
     font-size: 80%;
 }
@@ -178,6 +213,37 @@ pre {
     padding: 0.5em 1ex;
 }
 
+table {
+    border-collapse: collapse;
+    font-size: 90%;
+    margin: 1em auto;
+    max-width: 90%;
+    overflow: auto;
+    padding: 0;
+}
+
+table thead {
+    border-bottom: 2px solid;
+}
+
+table tbody tr {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+table td, table th {
+    padding: 0.6em 1.5ex;
+}
+
+table tbody tr:nth-child(2n) {
+    background: rgba(0, 0, 0, 0.175);
+}
+
+@media screen and (min-width: 480px) {
+    table {
+        font-size: 100%;
+    }
+}
+
 
 /*** Footer ***/
 
@@ -186,7 +252,7 @@ footer {
     clear: both;
     font-size: 85%;
     margin: 2em 0 0;
-    padding: 0;
+    padding: 0.2em 0.5ex;
     text-align: right;
 }
 
@@ -219,6 +285,10 @@ code {
 dd code, li code, p code {
     color: #048;
     padding: 0 0.1ex;
+}
+
+td code {
+    color: #024;
 }
 
 q {
