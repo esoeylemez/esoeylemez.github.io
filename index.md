@@ -10,7 +10,7 @@ I'm a software engineer and hobby writer.
 Software
 ========
 
-[predictive](https://hackage.haskell.org/package/predictive)
+[predictive](https://hackage.haskell.org/package/predictive):
   : Predict the future, backtrack on failure
 
 [rapid](https://hackage.haskell.org/package/rapid):
