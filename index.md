@@ -32,6 +32,9 @@ These are older software projects that I still maintain:
 Tutorials
 =========
 
+[Monoids for configuration](tutorial/config-monoids.html):
+  : Monoids for application configuration
+
 Ledger-Tutorial (German)
 ------------------------
 
