@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>Monoids for configuration – ertes.eu</title>
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+<meta name="author" content="ertes" />
+<meta name="dcterms.date" content="2016-11-08" />
+<link rel="stylesheet" href="../style.css" />
+<!--[if lt IE 9]>
+<script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+<![endif]-->
+</head>
+<body>
+<header>
+<p class="site-title"><a href="../index.html">ertes.eu</a></p>
+</header>
+<main role="main">
+<h1 class="title">Monoids for configuration</h1>
+<p class="meta">by ertes, published on 2016-11-08</p>
+<nav id="toc">
+<h2>Table of contents</h2>
+<ul>
+<li><a href="#introduction">Introduction</a></li>
+<li><a href="#unifying-phases">Unifying phases</a></li>
+<li><a href="#dynamic-configuration">Dynamic configuration</a></li>
+<li><a href="#the-meta-phase">The meta phase</a></li>
+</ul>
+</nav>
+<div id="content">
+<p>Configuring an application usually involves gathering information from multiple sources, for example:</p>
+<ul>
+<li>command line arguments,</li>
+<li>environment variables,</li>
+<li>configuration files,</li>
+<li>etc.</li>
+</ul>
+<p>This article introduces my method for doing this algebraically using monoids.</p>
+<section id="introduction" class="level2">
+<h2>Introduction</h2>
+<p>Imagine a hypothetical compiler named <code>myc</code>, which compiles the hypothetical language MyLang, version 2 by default. If you ask for a command line synopsis, it will report:</p>
+<pre><code>% myc --help
+myc [-dv] [-l v1|v2] [-o outputfile] [inputfile...]
+  -d  Enable debugging information
+  -l  Language version
+  -o  Set output file
+  -v  Be more verbose</code></pre>
+<p>In addition to the command line flags it also reads the <code>MYCFLAGS</code> environment variable for default options, and each input file can provide further options by using a special pragma at the top of the file. This means that there are three sources for configuration data, each with different priorities, and one of them is special, as we will see later. Applications that are configurable by the user in that fashion generally have at least two phases:</p>
+<ul>
+<li><p>the <em>build</em> phase, during which configuration data is gathered,</p></li>
+<li><p>the <em>run</em> phase, during which the configuration data is used.</p></li>
+</ul>
+<p>In the build phase configuration data is gathered from all relevant sources and then combined monoidally, because monoids are the algebraic notion for <em>accumulation</em>. Examples:</p>
+<ul>
+<li><p>Verbosity levels are additive (more <code>-v</code> options = more verbose),</p></li>
+<li><p>Lists of input files are concatenative (or alternatively union-like, if you use <em>sets</em> instead of lists),</p></li>
+<li><p>The language version follows the <code>Last</code> monoid (the most recent option wins).</p></li>
+</ul>
+<p>The data gathered during this phase can be captured as a <em>product monoid</em>, that is simply a record type where each field is a monoid. We will use GHC generics together with the <a href="https://hackage.haskell.org/package/generic-deriving">generic-deriving package</a>, which writes instances for product monoids for us (an otherwise mechanical and rather tedious process):</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">{-# LANGUAGE DeriveGeneric #-}</span>
+
+<span class="kw">import </span><span class="dt">Data.Set</span> (<span class="dt">Set</span>)
+<span class="kw">import </span><span class="dt">GHC.Generics</span> (<span class="dt">Generic</span>)
+<span class="kw">import </span><span class="dt">Generics.Deriving.Monoid</span>
+
+<span class="kw">data</span> <span class="dt">Language</span> <span class="fu">=</span> <span class="dt">V1</span> <span class="fu">|</span> <span class="dt">V2</span>
+
+<span class="kw">data</span> <span class="dt">ConfigBuild</span> <span class="fu">=</span>
+    <span class="dt">ConfigBuild</span> {
+<span class="ot">      _debug     ::</span> <span class="dt">Any</span>,
+<span class="ot">      _inFiles   ::</span> <span class="dt">Set</span> FilePath,
+<span class="ot">      _language  ::</span> <span class="dt">Last</span> <span class="dt">Language</span>,
+<span class="ot">      _outFile   ::</span> <span class="dt">Last</span> FilePath,
+<span class="ot">      _verbosity ::</span> <span class="dt">Sum</span> <span class="dt">Integer</span>
+    }
+    <span class="kw">deriving</span> (<span class="dt">Generic</span>)
+
+<span class="kw">instance</span> <span class="dt">Monoid</span> <span class="dt">ConfigBuild</span> <span class="kw">where</span>
+    mappend <span class="fu">=</span> mappenddefault
+    mempty <span class="fu">=</span> memptydefault</code></pre></div>
+<p>When the build phase is over we would switch into the run phase, at which point we have to use a slightly different type, because some of the fields are no longer monoids (although in most cases they could still be semigroups). For example the language version has to be definite, if necessary by using a default:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">{-# LANGUAGE DuplicateRecordFields #-}</span>
+
+<span class="kw">data</span> <span class="dt">ConfigRun</span> <span class="fu">=</span>
+    <span class="dt">ConfigRun</span> {
+<span class="ot">      _debug     ::</span> <span class="dt">Bool</span>,
+<span class="ot">      _inFiles   ::</span> <span class="dt">Set</span> FilePath,
+<span class="ot">      _language  ::</span> <span class="dt">Language</span>,
+<span class="ot">      _outFile   ::</span> FilePath,
+<span class="ot">      _verbosity ::</span> <span class="dt">Integer</span>
+    }</code></pre></div>
+<p>We also need to write a function that does the transition. This cannot be automated (at least not fully), because you need to fill in the remaining blanks after the configuration phase:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">{-# LANGUAGE RecordWildCards #-}</span>
+
+<span class="ot">adHocBuildConfig ::</span> <span class="dt">ConfigBuild</span> <span class="ot">-&gt;</span> <span class="dt">ConfigRun</span>
+adHocBuildConfig <span class="dt">ConfigBuild</span>{<span class="fu">..</span>} <span class="fu">=</span>
+    <span class="dt">ConfigRun</span> {
+      _debug     <span class="fu">=</span> getAny _debug,
+      _inFiles   <span class="fu">=</span> _inFiles,
+      _language  <span class="fu">=</span> maybe <span class="dt">V2</span> id (getLast _language),
+      _outFile   <span class="fu">=</span> maybe <span class="st">&quot;a.out&quot;</span> id (getLast _outFile),
+      _verbosity <span class="fu">=</span> getSum _verbosity
+    }</code></pre></div>
+<p>This isn’t too bad, but the <code>ConfigRun</code> type duplicates so much information, because we failed to capture the essence of what makes the build phase different from the run phase.</p>
+</section>
+<section id="unifying-phases" class="level2">
+<h2>Unifying phases</h2>
+<p>The idea is that we need a certain piece of information during the run phase like, for example, the language version. That is just a value of type <code>Language</code>. During the build phase we need a monoid that captures the last language version chosen as well as a <q>no explicit choice</q> case. That happens to be <code>Last Language</code>. We do something similar with the verbosity: It’s just a plain <code>Integer</code> during the run phase, but during the build phase it needs to be coupled with additivity, that is <code>Sum Integer</code>.</p>
+<p>More generally for each configuration field we seem to select a regular type <code>A</code> during the run phase, but a monoidal type <code>F A</code> during the build phase. If we abstract over this selection, then we can unify the two phases into a single type:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Config</span> select <span class="fu">=</span>
+    <span class="dt">Config</span> {
+<span class="ot">      _debug     ::</span> select <span class="dt">Identity</span> <span class="dt">Any</span>,
+<span class="ot">      _inFiles   ::</span> select <span class="dt">Identity</span> (<span class="dt">Set</span> FilePath),
+<span class="ot">      _language  ::</span> select <span class="dt">Last</span> <span class="dt">Language</span>,
+<span class="ot">      _outFile   ::</span> select <span class="dt">Last</span> FilePath,
+<span class="ot">      _verbosity ::</span> select <span class="dt">Sum</span> <span class="dt">Integer</span>
+    }
+    <span class="kw">deriving</span> (<span class="dt">Generic</span>)</code></pre></div>
+<p>For each field the <code>select</code> type is applied to an <code>F</code> and an <code>A</code>. If it returns <code>F A</code>, we’re in the build phase, and if it returns just <code>A</code>, we’re in the run phase:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">{-# LANGUAGE DeriveFoldable #-}</span>
+<span class="ot">{-# LANGUAGE DeriveFunctor #-}</span>
+<span class="ot">{-# LANGUAGE DeriveTraversable #-}</span>
+<span class="ot">{-# LANGUAGE GeneralizedNewtypeDeriving #-}</span>
+<span class="ot">{-# LANGUAGE PolyKinds #-}</span>
+
+<span class="kw">newtype</span> <span class="dt">Build</span> f a <span class="fu">=</span> <span class="dt">Build</span> {<span class="ot"> fromBuild ::</span> f a }
+    <span class="kw">deriving</span> (<span class="dt">Eq</span>, <span class="dt">Foldable</span>, <span class="dt">Functor</span>, <span class="dt">Monoid</span>,
+              <span class="dt">Ord</span>, <span class="dt">Show</span>, <span class="dt">Traversable</span>)
+
+<span class="kw">newtype</span> <span class="dt">Run</span> f a <span class="fu">=</span> <span class="dt">Run</span> {<span class="ot"> fromRun ::</span> a }
+    <span class="kw">deriving</span> (<span class="dt">Eq</span>, <span class="dt">Foldable</span>, <span class="dt">Functor</span>, <span class="dt">Monoid</span>,
+              <span class="dt">Ord</span>, <span class="dt">Show</span>, <span class="dt">Traversable</span>)</code></pre></div>
+<p>You may be asking why I enabled PolyKinds there. The <code>Run</code> type abstracts over <code>f</code>, but doesn’t use it, so its kind is defaulted to <code>*</code>, and we couldn’t use it as an argument to <code>Config</code> (kind error). Now we could write a kind signature for <code>f</code>, but since we’re going to need an extension anyway, we might as well just make it kind-polymorphic instead.</p>
+<p>Of course during the build phase we want our configuration type to be a monoid:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">{-# LANGUAGE FlexibleInstances #-}</span>
+
+<span class="kw">instance</span> <span class="dt">Monoid</span> (<span class="dt">Config</span> <span class="dt">Build</span>) <span class="kw">where</span>
+    mempty <span class="fu">=</span> memptydefault
+    mappend <span class="fu">=</span> mappenddefault</code></pre></div>
+<p>All we need now is the function that switches from the build phase to the run phase, which we’ll write in terms of a little helper function. For each field we need to decide how to get rid of the <code>f</code> layer from the build phase, a recurring pattern:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">(!&lt;-) ::</span> (f a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> <span class="dt">Build</span> f a <span class="ot">-&gt;</span> <span class="dt">Run</span> f b
+(<span class="fu">!&lt;-</span>) f <span class="fu">=</span> <span class="dt">Run</span> <span class="fu">.</span> f <span class="fu">.</span> fromBuild
+
+infix <span class="dv">1</span> <span class="fu">!&lt;-</span></code></pre></div>
+<p>The mnemonic for this function is that the arrow is pointing toward the bang, the run phase, where stuff happens.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">buildConfig ::</span> <span class="dt">Config</span> <span class="dt">Build</span> <span class="ot">-&gt;</span> <span class="dt">Config</span> <span class="dt">Run</span>
+buildConfig <span class="dt">Config</span>{<span class="fu">..</span>} <span class="fu">=</span>
+    <span class="dt">Config</span> {
+      _debug     <span class="fu">=</span> runIdentity                <span class="fu">!&lt;-</span> _debug,
+      _inFiles   <span class="fu">=</span> runIdentity                <span class="fu">!&lt;-</span> _inFiles,
+      _language  <span class="fu">=</span> maybe <span class="dt">V2</span> id <span class="fu">.</span> getLast      <span class="fu">!&lt;-</span> _language,
+      _outFile   <span class="fu">=</span> maybe <span class="st">&quot;a.out&quot;</span> id <span class="fu">.</span> getLast <span class="fu">!&lt;-</span> _outFile,
+      _verbosity <span class="fu">=</span> getSum                     <span class="fu">!&lt;-</span> _verbosity
+    }</code></pre></div>
+<p>In most applications that’s all we need. We can now gather configuration data from multiple sources,</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">getArgsConfig ::</span> <span class="dt">IO</span> (<span class="dt">Config</span> <span class="dt">Build</span>)
+<span class="ot">getEnvConfig  ::</span> <span class="dt">IO</span> (<span class="dt">Config</span> <span class="dt">Build</span>)</code></pre></div>
+<p>and then just combine them:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">liftA2 (<span class="fu">&lt;&gt;</span>) getArgsConfig getEnvConfig</code></pre></div>
+</section>
+<section id="dynamic-configuration" class="level2">
+<h2>Dynamic configuration</h2>
+<p>In the above there is a piece missing. Didn’t we say that individual files can specify extra options in a pragma? Now this is actually a bit of a chicken/egg problem: At the point when we know which files we are going to compile we have left the build phase.</p>
+<p>In this particular application we could just attempt to read the pragma before switching to the run phase, but that is just a precursor to bad application design. As soon as we start using configuration data during the build phase, we’re paving the way for complicated configuration logic and ultimately a user interface that is hard to explain. There should be a definite line when we stop collecting and start using configuration data.</p>
+<p>The basic idea is that at any point in the application we can return to the build phase. In our compiler example for each file we would return to the build phase to read the top of the file looking for the pragma, and once either the pragma is found or we’re convinced that it’s not there, we use <code>buildConfig</code> again. The resulting configuration is now specific to that file.</p>
+<p>Unlike the transition to the run phase the opposite direction is entirely mechanical. We’ll do it by hand here, but there is likely a fully automated way using generics:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">unbuild ::</span> (<span class="dt">Applicative</span> f) <span class="ot">=&gt;</span> <span class="dt">Run</span> f a <span class="ot">-&gt;</span> <span class="dt">Build</span> f a
+unbuild <span class="fu">=</span> <span class="dt">Build</span> <span class="fu">.</span> pure <span class="fu">.</span> fromRun
+
+<span class="ot">unbuildConfig ::</span> <span class="dt">Config</span> <span class="dt">Run</span> <span class="ot">-&gt;</span> <span class="dt">Config</span> <span class="dt">Build</span>
+unbuildConfig <span class="dt">Config</span>{<span class="fu">..</span>} <span class="fu">=</span>
+    <span class="dt">Config</span> {
+      _debug     <span class="fu">=</span> unbuild _debug,
+      _inFiles   <span class="fu">=</span> unbuild _inFiles,
+      _language  <span class="fu">=</span> unbuild _language,
+      _outFile   <span class="fu">=</span> unbuild _outFile,
+      _verbosity <span class="fu">=</span> unbuild _verbosity
+    }</code></pre></div>
+<p>We can now return to the build phase whenever we need to accumulate more configuration data. This is also useful in the common case when the application allows its users to override the path to the configuration file using a command line option.</p>
+</section>
+<section id="the-meta-phase" class="level2">
+<h2>The meta phase</h2>
+<p>Now that our configuration type abstracts over the selector type we can think of other kinds of phases like a <em>meta phase</em>:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">newtype</span> <span class="dt">Meta</span> c f a <span class="fu">=</span> <span class="dt">Meta</span> {<span class="ot"> fromMeta ::</span> c }
+    <span class="kw">deriving</span> (<span class="dt">Eq</span>, <span class="dt">Foldable</span>, <span class="dt">Functor</span>, <span class="dt">Monoid</span>,
+              <span class="dt">Ord</span>, <span class="dt">Show</span>, <span class="dt">Traversable</span>)</code></pre></div>
+<p>Unlike the other phases this does not include any configuration information at all, but meta-data about each field, for example help strings:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">{-# LANGUAGE OverloadedStrings #-}</span>
+
+<span class="kw">import </span><span class="dt">Data.Text</span> (<span class="dt">Text</span>)
+
+<span class="ot">helpConfig ::</span> <span class="dt">Config</span> (<span class="dt">Meta</span> <span class="dt">Text</span>)
+helpConfig <span class="fu">=</span>
+    <span class="dt">Config</span> {
+      _debug     <span class="fu">=</span> <span class="dt">Meta</span> <span class="st">&quot;Debugging information&quot;</span>,
+      _inFiles   <span class="fu">=</span> <span class="dt">Meta</span> <span class="st">&quot;Input files&quot;</span>,
+      _language  <span class="fu">=</span> <span class="dt">Meta</span> <span class="st">&quot;Language version&quot;</span>,
+      _outFile   <span class="fu">=</span> <span class="dt">Meta</span> <span class="st">&quot;Output file&quot;</span>,
+      _verbosity <span class="fu">=</span> <span class="dt">Meta</span> <span class="st">&quot;Verbosity&quot;</span>
+    }</code></pre></div>
+<p>You could come up with a more elaborate help type than <code>Text</code> and use it to generate the command line synopsis that <code>--help</code> prints by using generics. I will leave it to your imagination to make use of this phase for other things that are <em>meta</em>.</p>
+</section>
+</div>
+</main>
+<footer>
+<p>&copy; Ertugrul Söylemez</p>
+<p><a href="../about.html">Legal information</a></p>
+</footer>
+</body>
+</html>
