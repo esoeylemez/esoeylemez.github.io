@@ -308,7 +308,7 @@ pre .co {
 }
 
 pre .dt {
-    color: #060;
+    color: #050;
 }
 
 pre .fu {
@@ -316,6 +316,7 @@ pre .fu {
 }
 
 pre .kw {
+    color: #333;
     font-weight: bold;
 }
 
