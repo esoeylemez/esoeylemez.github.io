@@ -33,14 +33,13 @@
 </nav>
 <div id="content">
 <p>This tutorial is not only educational material for you, but it’s also a playing field for me to explore just how far simple algebraic structures like monoids can be applied in the context of software design.</p>
-<p>Exercises are provided for you to practice. Some of those are marked as <em>hard</em>, which means that they can be challenging to solve under the assumption that the reader has no math training. In general you should still try your best to solve them. Some exercises are marked as <em>super-hard</em>, which means that they are mostly for your and my entertainment, and you don’t need to worry too much, if you can’t solve them.</p>
 <p><a href="http://creativecommons.org/licenses/by-sa/4.0/"><img src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png" alt="Creative Commons Attribution-ShareAlike 4.0 International License" /></a> This work is licensed under a <a href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>
 <section id="semigroups" class="level2">
 <h2>Semigroups</h2>
 <p>Let’s build up to monoids first; don’t worry, it’s a relatively short build-up. A <em>semigroup</em> is an associative binary function:</p>
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | Associative binary functions.  Values of this type should satisfy</span>
 <span class="co">-- the following law:</span>
-<span class="fu">--</span>
+<span class="co">--</span>
 <span class="co">--   * Associativity: for all x, y, z,</span>
 <span class="co">--     @(x `sappend` y) `sappend` z = x `sappend` (y `sappend` z)@.</span>
 
@@ -170,7 +169,7 @@ listLen <span class="fu">=</span> foldl&#39; (\c _ <span class="ot">-&gt;</span>
 <h2>Type classes</h2>
 <p>We have talked about the weakness of the associativity law, of which one consequence is that there are loads and loads of semigroups. I don’t just mean that in the obvious mathematical sense (there are infinitely many of them), but that you actually find them all over your code, if you train your senses to see them. This also means that as you start abstracting over semigroups it may get tedious to pass them around as arguments all the time. Luckily Haskell has a rather convenient feature to pass stuff to functions implicitly: type classes. A class for semigroups looks like this:</p>
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | Instances of this class should satisfy the following law:</span>
-<span class="fu">--</span>
+<span class="co">--</span>
 <span class="co">--   * Associativity: for all x, y, z,</span>
 <span class="co">--     @(x &lt;&gt; y) &lt;&gt; z = x &lt;&gt; (y &lt;&gt; z)@.</span>
 
