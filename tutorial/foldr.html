@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>Mastering foldr – ertes.eu</title>
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+<meta name="author" content="ertes" />
+<link rel="stylesheet" href="../style.css" />
+<!--[if lt IE 9]>
+<script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+<![endif]-->
+</head>
+<body>
+<header>
+<p class="site-title"><a href="../index.html">ertes.eu</a></p>
+</header>
+<main role="main">
+<h1 class="title">Mastering foldr</h1>
+<p class="meta">by ertes, published on 2016-11-23 (draft)</p>
+<nav id="toc">
+<h2>Table of contents</h2>
+<ul>
+<li><a href="#folding-maybe">Folding Maybe</a><ul>
+<li><a href="#example-mlength">Example: mLength</a></li>
+<li><a href="#example-flattenmaybe">Example: flattenMaybe</a></li>
+<li><a href="#exercises">Exercises</a></li>
+</ul></li>
+<li><a href="#foldr">foldr</a><ul>
+<li><a href="#example-reverse">Example: reverse</a></li>
+<li><a href="#example-printeach">Example: printEach</a></li>
+<li><a href="#example-append">Example: append</a></li>
+<li><a href="#exercises-1">Exercises</a></li>
+</ul></li>
+<li><a href="#stateful-folds">Stateful folds</a><ul>
+<li><a href="#append-again">Append again</a></li>
+<li><a href="#example-take">Example: take</a></li>
+<li><a href="#example-sum">Example: sum</a></li>
+<li><a href="#example-foldl">Example: foldl’</a></li>
+<li><a href="#example-foldl-1">Example: foldl</a></li>
+<li><a href="#exercises-2">Exercises</a></li>
+</ul></li>
+<li><a href="#reverse-state">Reverse state</a><ul>
+<li><a href="#the-identity-fold">The identity fold</a></li>
+<li><a href="#a-semi-constant-fold">A semi-constant fold</a></li>
+<li><a href="#example-null">Example: null</a></li>
+<li><a href="#heads-tails-and-a-digression">Heads, tails and a digression</a></li>
+<li><a href="#example-bisect">Example: bisect</a></li>
+<li><a href="#exercises-3">Exercises</a></li>
+</ul></li>
+<li><a href="#exercise-solutions">Exercise solutions</a></li>
+</ul>
+</nav>
+<div id="content">
+<p>I used to hate calculus; you know, that mathematical abomination that calculates slopes of 15-dimensional curves or the exact area under super-complicated graphs with a smile? As an algebraic thinker it feels wrong to me in so many ways, and yet I can’t deny that it works. It’s not <em>wrong</em>. It’s just <em>weird</em>. Consider this: it takes all these crazy edge cases of real analysis like infinitesimals, and reduces everything to… a calculus! A pragmatic and downright prosaic toolbox! Something physicists and engineers carry around on their belts to get their job done. Today I kinda appreciate it for that.</p>
+<p>Now you may be asking what this has to do with the topic of this tutorial. Folds and unfolds actually do something very similar to calculus: they take concepts like infinite recursion and self-similarity and reduce them to a pair of functions with simple, well understood semantics and properties.</p>
+<p>Yet beginning Haskell programmers often struggle even with one of the most fundamental list functions, <code>foldr</code>, and because of that they often write longer and more complicated code than necessary. This tutorial series is an attempt to improve the situation, not necessarily by going slower than other tutorials, but by training readers to recognise patterns and use equational reasoning to use them. After all just like calculus folds are <em>tools</em>, and you should master them.</p>
+<p>This tutorial is written as a <a href="foldr.lhs">literate Haskell file</a>.</p>
+<section id="folding-maybe" class="level2">
+<h2>Folding Maybe</h2>
+<p>Before we talk about <code>foldr</code> let’s talk about its simpler cousin <code>maybe</code>. It’s defined as:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">maybe<span class="ot"> ::</span> r <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> <span class="dt">Maybe</span> a <span class="ot">-&gt;</span> r
+maybe n _ <span class="dt">Nothing</span>  <span class="fu">=</span> n
+maybe _ j (<span class="dt">Just</span> x) <span class="fu">=</span> j x</code></pre></div>
+<p>This function basically replaces pattern-matching on <code>Maybe</code>.</p>
+<section id="example-mlength" class="level3">
+<h3>Example: mLength</h3>
+<p>Suppose we want to write a function of type <code>Maybe [a] -&gt; Int</code> that returns the length of the argument list in the <code>Just</code> case and defaults to 0 in the <code>Nothing</code> case. We might do it by pattern-matching:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">mLengthExplicit ::</span> <span class="dt">Maybe</span> [a] <span class="ot">-&gt;</span> <span class="dt">Int</span>
+mLengthExplicit <span class="dt">Nothing</span>   <span class="fu">=</span> <span class="dv">0</span>
+mLengthExplicit (<span class="dt">Just</span> xs) <span class="fu">=</span> length xs</code></pre></div>
+<p>Try the following examples in GHCi:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">λ<span class="fu">&gt;</span> mLengthExplicit (<span class="dt">Just</span> <span class="st">&quot;abc&quot;</span>)
+<span class="dv">3</span>
+
+λ<span class="fu">&gt;</span> mLengthExplicit <span class="dt">Nothing</span>
+<span class="dv">0</span></code></pre></div>
+<p>Now we would like to write the same function (this time calling it <code>mLength</code>) in terms of <code>maybe</code>. The resulting function should be of the following shape, which we will call its <em>template</em>:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">mLength ::</span> <span class="dt">Maybe</span> [a] <span class="ot">-&gt;</span> <span class="dt">Int</span>
+mLength <span class="fu">=</span> maybe _n _j</code></pre></div>
+<p>This means that we need to find <code>_n</code> and <code>_j</code> such that <code>maybe _n _j</code> is the same function as <code>mLengthExplicit</code>. As a useful feature note that GHC treats variables that begin with an underscore (and are undefined) specially as so-called <em>typed holes</em>. When you try to compile this code, it will actually tell you the types of <code>_n</code> and <code>_j</code>.</p>
+<p>Okay, let’s fill in the holes. First let’s consider what the result of the function has to be in the <code>Nothing</code> case:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">maybe _n _j <span class="dt">Nothing</span> <span class="fu">=</span> <span class="dv">0</span></code></pre></div>
+<p>If we substitute the definition of <code>maybe</code> for the <code>Nothing</code> case, we arrive at:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">_n <span class="fu">=</span> <span class="dv">0</span></code></pre></div>
+<p>We have found <code>_n</code>:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">mLength <span class="fu">=</span> maybe <span class="dv">0</span> _j</code></pre></div>
+<p>In order to figure out what <code>_j</code> has to be we follow exactly the same process. We consider what the result of <code>maybe 0 _j (Just xs)</code> has to be:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">maybe <span class="dv">0</span> _j (<span class="dt">Just</span> xs) <span class="fu">=</span> length xs</code></pre></div>
+<p>Again substituting the definition of <code>maybe</code> we arrive at,</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">_j xs <span class="fu">=</span> length xs</code></pre></div>
+<p>or simply:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">_j <span class="fu">=</span> length</code></pre></div>
+<p>And that completes our definition of <code>mLength</code>:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">mLength ::</span> <span class="dt">Maybe</span> [a] <span class="ot">-&gt;</span> <span class="dt">Int</span>
+mLength <span class="fu">=</span> maybe <span class="dv">0</span> length</code></pre></div>
+<p>If this felt a bit like school algebra, that’s because it <em>is</em> school algebra. We have constructed equations and then solved them. In fact most school algebra questions were more involved, because in this case all we had to do was to substitute definitions we had already known.</p>
+</section>
+<section id="example-flattenmaybe" class="level3">
+<h3>Example: flattenMaybe</h3>
+<p>Let’s do another example: We would like to write a function that flattens nested <code>Maybe</code> values:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">flattenMaybeExplicit ::</span> <span class="dt">Maybe</span> (<span class="dt">Maybe</span> a) <span class="ot">-&gt;</span> <span class="dt">Maybe</span> a
+flattenMaybeExplicit <span class="dt">Nothing</span>   <span class="fu">=</span> <span class="dt">Nothing</span>
+flattenMaybeExplicit (<span class="dt">Just</span> mx) <span class="fu">=</span> mx</code></pre></div>
+<p>Again we write our template and construct a system of equations to fill in the two holes:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">flattenMaybe ::</span> <span class="dt">Maybe</span> (<span class="dt">Maybe</span> a) <span class="ot">-&gt;</span> <span class="dt">Maybe</span> a
+flattenMaybe <span class="fu">=</span> maybe _n _j
+
+maybe _n _j <span class="dt">Nothing</span>   <span class="fu">=</span> <span class="dt">Nothing</span>
+maybe _n _j (<span class="dt">Just</span> mx) <span class="fu">=</span> mx</code></pre></div>
+<p>Substituting the definition of <code>maybe</code> in our equations we get:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">_n    <span class="fu">=</span> <span class="dt">Nothing</span>
+_j mx <span class="fu">=</span> mx</code></pre></div>
+<p>So <code>_n</code> is just <code>Nothing</code>, and <code>_j</code> is the identity function, and we’re done:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">flattenMaybe ::</span> <span class="dt">Maybe</span> (<span class="dt">Maybe</span> a) <span class="ot">-&gt;</span> <span class="dt">Maybe</span> a
+flattenMaybe <span class="fu">=</span> maybe <span class="dt">Nothing</span> id</code></pre></div>
+<p>The <code>maybe</code> function is actually known as the <code>Maybe</code> fold. It takes a <code>Maybe</code> value and enough information to reduce it completely. We will see that <code>foldr</code> does basically the same thing for lists, but with a twist: there is recursion involved.</p>
+</section>
+<section id="exercises" class="level3">
+<h3>Exercises</h3>
+<p>Ready for a few exercises? Keep in mind that you have two goals here: the first goal is of course to solve these challenges, but the second and more important goal is to use the kind of mechanical equational reasoning that we have used above to do it.</p>
+<p>Write <code>myMaybeToList</code> using the following template such that it satisfies the following test cases:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- Template:</span>
+<span class="ot">myMaybeToList ::</span> <span class="dt">Maybe</span> a <span class="ot">-&gt;</span> [a]
+myMaybeToList <span class="fu">=</span> maybe _n _j
+
+<span class="co">-- Test cases:</span>
+myMaybeToList <span class="dt">Nothing</span>    <span class="fu">=</span> []
+myMaybeToList (<span class="dt">Just</span> <span class="ch">&#39;a&#39;</span>) <span class="fu">=</span> <span class="st">&quot;a&quot;</span></code></pre></div>
+<p>Write <code>mApply</code> using the following template such that it satisfies the following test cases:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- Template:</span>
+<span class="ot">mApply ::</span> b <span class="ot">-&gt;</span> <span class="dt">Maybe</span> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> b
+mApply defY mf x <span class="fu">=</span> maybe _n _j mf
+
+<span class="co">-- Test cases:</span>
+mApply <span class="dv">0</span> <span class="dt">Nothing</span> <span class="dv">5</span>     <span class="fu">=</span> <span class="dv">0</span>
+mApply <span class="dv">0</span> (<span class="dt">Just</span> (<span class="fu">^</span><span class="dv">2</span>)) <span class="dv">5</span> <span class="fu">=</span> <span class="dv">25</span></code></pre></div>
+</section>
+</section>
+<section id="foldr" class="level2">
+<h2>foldr</h2>
+<p>Let’s review the definition of <code>foldr</code>. For the majority of this tutorial we will use a specialised version of <code>foldr</code>, namely the one for lists:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">foldr<span class="ot"> ::</span> (a <span class="ot">-&gt;</span> r <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> r <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> r
+foldr f z []     <span class="fu">=</span> z
+foldr f z (x<span class="fu">:</span>xs) <span class="fu">=</span> f x (foldr f z xs)</code></pre></div>
+<p>This looks strikingly similar to <code>maybe</code> now, doesn’t it? The major difference is that this one is recursive. But don’t worry: the method we have used in the last section applies here almost unaltered, so let’s just dive straight into an example.</p>
+<section id="example-reverse" class="level3">
+<h3>Example: reverse</h3>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">reverseExplicit ::</span> [a] <span class="ot">-&gt;</span> [a]
+reverseExplicit []     <span class="fu">=</span> []
+reverseExplicit (x<span class="fu">:</span>xs) <span class="fu">=</span> reverseExplicit xs <span class="fu">++</span> [x]</code></pre></div>
+<p>This is a function to reverse lists. In order to write it in terms of <code>foldr</code> first we write our template as before. Let’s call our function <code>myReverse</code>, because <code>reverse</code> is predefined:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">myReverse ::</span> [a] <span class="ot">-&gt;</span> [a]
+myReverse <span class="fu">=</span> foldr _f _z</code></pre></div>
+<p>Next we construct our system of equations based on the semantics we would like. Let’s do the two possible cases separately, starting with the empty case:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">foldr _f _z [] <span class="fu">=</span> []</code></pre></div>
+<p>We substitute the definition of <code>foldr</code> to arrive at:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">_z <span class="fu">=</span> []</code></pre></div>
+<p>Okay, now that we know <code>_z</code> we can amend our template:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">myReverse <span class="fu">=</span> foldr _f []</code></pre></div>
+<p>Now let’s construct the equation for the non-empty case,</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">foldr _f [] (x<span class="fu">:</span>xs) <span class="fu">=</span> myReverse xs <span class="fu">++</span> [x]</code></pre></div>
+<p>and substitute the definition of <code>foldr</code> as usual:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">_f x (foldr _f [] xs) <span class="fu">=</span> myReverse xs <span class="fu">++</span> [x]</code></pre></div>
+<p>Okay, this part is a bit tricky. Let’s make sure we understand this equation properly. First notice that <code>foldr _f []</code> is just <code>myReverse</code>:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">_f x (myReverse xs) <span class="fu">=</span> myReverse xs <span class="fu">++</span> [x]</code></pre></div>
+<p>What this equation is really saying is that the function <code>_f</code> receives as its second argument the reverse of <code>xs</code>, and its result should be the reverse of <code>xs</code> with the singleton list <code>[x]</code> appended at its end. In other words the <code>myReverse xs</code> on the right hand side of the equation is <em>not</em> a recursive application of <code>myReverse</code> to <code>xs</code>, but really just the second argument of <code>_f</code>! Here is perhaps a slightly clearer version of the same equation:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">_f x revOfXs <span class="fu">=</span> revOfXs <span class="fu">++</span> [x]</code></pre></div>
+<p>And that is actually already a valid definition for the function <code>_f</code>, so we can use it:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">myReverse ::</span> [a] <span class="ot">-&gt;</span> [a]
+myReverse <span class="fu">=</span> foldr (\x revOfXs <span class="ot">-&gt;</span> revOfXs <span class="fu">++</span> [x]) []</code></pre></div>
+</section>
+<section id="example-printeach" class="level3">
+<h3>Example: printEach</h3>
+<p>Let’s do another example. The following function prints every list element, each on a separate line:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">printEachExplicit ::</span> (<span class="dt">Show</span> a) <span class="ot">=&gt;</span> [a] <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+printEachExplicit [] <span class="fu">=</span> pure ()
+printEachExplicit (x<span class="fu">:</span>xs) <span class="fu">=</span>
+    print x <span class="fu">&gt;&gt;</span> printEachExplicit xs</code></pre></div>
+<p>Our template is,</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">printEach <span class="fu">=</span> foldr _f _z</code></pre></div>
+<p>with the following equations:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">foldr _f _z []     <span class="fu">=</span> pure ()
+foldr _f _z (x<span class="fu">:</span>xs) <span class="fu">=</span> print x <span class="fu">&gt;&gt;</span> printEach xs</code></pre></div>
+<p>As always we substitute:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">_z <span class="fu">=</span> pure ()
+_f x (foldr _f _z xs) <span class="fu">=</span> print x <span class="fu">&gt;&gt;</span> printEach xs</code></pre></div>
+<p>In the second equation we substitute <code>printEach</code> for <code>foldr _f _z</code>,</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">_f x (printEach xs) <span class="fu">=</span> print x <span class="fu">&gt;&gt;</span> printEach xs</code></pre></div>
+<p>and as before we notice that <code>printEach xs</code> on the right hand side is not a recursive use of <code>printEach</code>, but just the second argument to <code>_f</code>, so we rename <code>printEach xs</code> to <code>rest</code>:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">_f x rest <span class="fu">=</span> print x <span class="fu">&gt;&gt;</span> rest</code></pre></div>
+<p>And with that we have found both <code>_f</code> and <code>_z</code>:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">printEach ::</span> (<span class="dt">Show</span> a) <span class="ot">=&gt;</span> [a] <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+printEach <span class="fu">=</span> foldr (\x rest <span class="ot">-&gt;</span> print x <span class="fu">&gt;&gt;</span> rest) (pure ())</code></pre></div>
+</section>
+<section id="example-append" class="level3">
+<h3>Example: append</h3>
+<p>Okay, let’s do a slightly trickier example:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">appendExplicit ::</span> [a] <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> [a]
+appendExplicit []     ys <span class="fu">=</span> ys
+appendExplicit (x<span class="fu">:</span>xs) ys <span class="fu">=</span> x <span class="fu">:</span> appendExplicit xs ys</code></pre></div>
+<p>This is the function to concatenate two lists. In this case it is important to identify on which of the two arguments the recursion happens. The first argument <code>xs</code> is the list we fold, while the second argument <code>ys</code> is just a global constant we can refer to throughout the fold. Therefore our template looks like this:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">append ::</span> [a] <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> [a]
+append xs ys <span class="fu">=</span> foldr _f _z xs</code></pre></div>
+<p>Here is our system of equations:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">foldr _f _z [] <span class="fu">=</span> ys
+foldr _f _z (x<span class="fu">:</span>xs) <span class="fu">=</span> x <span class="fu">:</span> append xs ys</code></pre></div>
+<p>Substitution again reveals the solutions:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">_z <span class="fu">=</span> ys
+_f x (foldr _f _z xs) <span class="fu">=</span> x <span class="fu">:</span> append xs ys</code></pre></div>
+<p>In the second equation notice that <code>foldr _f _z xs</code> is just <code>append xs ys</code> per our definition above,</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">_f x (append xs ys) <span class="fu">=</span> x <span class="fu">:</span> append xs ys</code></pre></div>
+<p>and once again <code>append xs ys</code> is just the second argument:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">_f x rest <span class="fu">=</span> x <span class="fu">:</span> rest</code></pre></div>
+<p>or much shorter:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">_f <span class="fu">=</span> (<span class="fu">:</span>)</code></pre></div>
+<p>And that completes our definition:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">append ::</span> [a] <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> [a]
+append xs ys <span class="fu">=</span> foldr (<span class="fu">:</span>) ys xs</code></pre></div>
+<p>This may still feel a bit alien; at least it did for me back when I was struggling with list folds. But the important things to keep in mind is that you can substitute by equational reasoning freely (one of the main strengths of Haskell!). Practice a bit, and you will eventually get the hang of it.</p>
+</section>
+<section id="exercises-1" class="level3">
+<h3>Exercises</h3>
+<p>Implement <code>map</code> using the following template:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">myMap ::</span> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> [b]
+myMap f <span class="fu">=</span> foldr _f _z</code></pre></div>
+<p>Implement <code>concatMap</code> using the following template:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">myConcatMap ::</span> (a <span class="ot">-&gt;</span> [b]) <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> [b]
+myConcatMap f <span class="fu">=</span> foldr _f _z</code></pre></div>
+<p>Implement <code>filter</code> using the following template:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">myFilter ::</span> (a <span class="ot">-&gt;</span> <span class="dt">Bool</span>) <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> [a]
+myFilter p <span class="fu">=</span> foldr _f _z</code></pre></div>
+</section>
+</section>
+<section id="stateful-folds" class="level2">
+<h2>Stateful folds</h2>
+<p>Here is an interesting challenge: How can we implement <code>sum</code> or <code>take</code> in terms of <code>foldr</code>? These aren’t as straightforward as the ones from the previous section, because all our folds so far have been stateless. But for example <code>take</code> has to maintain a decreasing counter during the fold, and <code>sum</code> has to maintain a running sum.</p>
+<p>At least for <code>sum</code>, if you have some Haskell experience, you might conclude that it’s just not a fold (also called a <em>right fold</em>, hence the name <code>foldr</code>), but in fact what we call a <em>left fold</em>. However, in addition to learning what left folds are we will see whether they are just special cases of folds.</p>
+<p>With <code>take</code> the situation is even a bit more interesting. It is a stateful fold, but definitely not a left fold, because one property of left folds is that they cannot return anything, not even lazily, before the whole list has been traversed. However, a bare fold the way we have done it so far is stateless.</p>
+<p>Do we need something more general than <code>foldr</code> to deal with state?</p>
+<section id="append-again" class="level3">
+<h3>Append again</h3>
+<p>In order to figure this out let’s revisit one of the functions we have written above: <code>append</code>. What we have done is to just consider the second argument as <q>extra information</q>, something that is just a global constant throughout the fold and used at the end of it:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">append xs ys <span class="fu">=</span> foldr (<span class="fu">:</span>) ys xs</code></pre></div>
+<p>There is actually a different way to write this one. Let’s review its recursive definition:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">appendExplicit ::</span> [a] <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> [a]
+appendExplicit []     ys <span class="fu">=</span> ys
+appendExplicit (x<span class="fu">:</span>xs) ys <span class="fu">=</span> x <span class="fu">:</span> appendExplicit xs ys</code></pre></div>
+<p>Pay attention to the structure of this function. What if we consider the fold to take a <em>single</em> argument <code>xs</code> and return a <em>function</em> of <code>ys</code> instead of a list? Due to currying this is just the same thing written slightly differently:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">appendExplicit ::</span> [a] <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> [a]
+appendExplicit []     <span class="fu">=</span> id
+appendExplicit (x<span class="fu">:</span>xs) <span class="fu">=</span> \ys <span class="ot">-&gt;</span> x <span class="fu">:</span> appendExplicit xs ys</code></pre></div>
+<p>But now our template looks quite different:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">append2 ::</span> [a] <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> [a]
+append2 <span class="fu">=</span> foldr _f _z
+
+<span class="co">-- Old template for comparison:</span>
+append xs ys <span class="fu">=</span> foldr _f _z xs</code></pre></div>
+<p>Consequently our system of equations also looks different:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">foldr _f _z []     <span class="fu">=</span> id
+foldr _f _z (x<span class="fu">:</span>xs) <span class="fu">=</span> \ys <span class="ot">-&gt;</span> x <span class="fu">:</span> append2 xs ys</code></pre></div>
+<p>Nevertheless the end result should still be the same, because we are really just using a different derivation method. So let’s just continue and see what we get. Substitution gives us:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">_z <span class="fu">=</span> id
+_f x (foldr _f _z xs) <span class="fu">=</span> \ys <span class="ot">-&gt;</span> x <span class="fu">:</span> append2 xs ys</code></pre></div>
+<p>Once again we tie the recursive knot for the non-empty case:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">_f x (append2 xs) <span class="fu">=</span> \ys <span class="ot">-&gt;</span> x <span class="fu">:</span> append2 xs ys</code></pre></div>
+<p>Finally we rewrite this a bit, moving the lambda to the left hand side and renaming <code>append xs</code> to <code>more</code>:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">_f x more ys <span class="fu">=</span> x <span class="fu">:</span> more ys</code></pre></div>
+<p>This leads to a seemingly different implementation from what we had before:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">append2 ::</span> [a] <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> [a]
+append2 <span class="fu">=</span> foldr (\x more ys <span class="ot">-&gt;</span> x <span class="fu">:</span> more ys) id</code></pre></div>
+<p>Here is the old version for comparison:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">append ::</span> [a] <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> [a]
+append xs ys <span class="fu">=</span> foldr (<span class="fu">:</span>) ys xs</code></pre></div>
+<p>Are these really the same function? Well, they have to be! And indeed, a quick experiment at the GHCi prompt confirms it, at least empirically:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">λ<span class="fu">&gt;</span> append2 <span class="st">&quot;abc&quot;</span> <span class="st">&quot;def&quot;</span>
+<span class="st">&quot;abcdef&quot;</span></code></pre></div>
+<p>Okay, what happened here? You have just witnessed a trivial example of stateful folds. Instead of returning the concatenated list, this fold returns a <em>function</em> that takes the latter part of the list (the <code>ys</code>) and while it consumes the argument list (<code>xs</code>), it just keeps passing <code>ys</code> to the next recursion level unchanged (<code>more ys</code>). At the very end of the fold, when <code>xs</code> is fully consumed and it has to decided what the remainder of the list should be, the fold decides that it should be the current state (<code>id</code>, or equivalently: <code>\ys -&gt; ys</code>), which of course is just the initial <code>ys</code>, because the state was never changed.</p>
+</section>
+<section id="example-take" class="level3">
+<h3>Example: take</h3>
+<p>Alright, let’s tackle the <code>take</code>. As always let’s look at a recursive definition first:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">takeExplicit ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> [a]
+takeExplicit n (x<span class="fu">:</span>xs) <span class="fu">=</span>
+    <span class="kw">if</span> n <span class="fu">&gt;</span> <span class="dv">0</span>
+      <span class="kw">then</span> x <span class="fu">:</span> takeExplicit (n <span class="fu">-</span> <span class="dv">1</span>) xs
+      <span class="kw">else</span> []
+takeExplicit _ [] <span class="fu">=</span> []</code></pre></div>
+<p>If we try to solve this directly, we will get the following template and equations (after all substitutions):</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">myTake n <span class="fu">=</span> foldr _f _z
+
+_z <span class="fu">=</span> []
+
+_f x (myTake n xs) <span class="fu">=</span>
+    <span class="kw">if</span> n <span class="fu">&gt;</span> <span class="dv">0</span>
+      <span class="kw">then</span> x <span class="fu">:</span> myTake (n <span class="fu">-</span> <span class="dv">1</span>) xs
+      <span class="kw">else</span> []</code></pre></div>
+<p>And now we have a problem. The function <code>_f</code> receives <code>myTake n xs</code> as its argument, but to proceed it would need <code>myTake (n - 1) xs</code>. There is no way to solve this equation (other than to actually use <code>myTake</code> recursively, which would defeat the point of <code>foldr</code>). The problem is that we cannot treat <code>n</code> as a global constant. It has to be <em>state</em> that we can <em>change</em> during the fold, just like <code>takeExplicit</code> does.</p>
+<p>The idea now is to construct the result indirectly: Construct a function that takes as its argument the number of elements to take. This causes <code>_f</code> to receive a <em>function</em> of the remaining number of elements, so that it can change it in the recursive application. This turns <code>n</code> from a global constant to an <em>initial state</em>. We have done the same with <code>append2</code> earlier, except we never actually changed the state.</p>
+<p>However, <code>myTake</code> is not quite in a suitable form to allow this transformation, because here the initial state argument comes <em>before</em> the list. We need to construct our fold for a flipped variant to make currying work for us just like it did with <code>append2</code>:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">flippedTakeExplicit ::</span> [a] <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> [a]
+flippedTakeExplicit (x<span class="fu">:</span>xs) <span class="fu">=</span>
+    \n <span class="ot">-&gt;</span>
+        <span class="kw">if</span> n <span class="fu">&gt;</span> <span class="dv">0</span>
+          <span class="kw">then</span> x <span class="fu">:</span> flippedTakeExplicit xs (n <span class="fu">-</span> <span class="dv">1</span>)
+          <span class="kw">else</span> []
+flippedTakeExplicit [] <span class="fu">=</span> const []</code></pre></div>
+<p>Here is the template and the equations:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">flippedTake ::</span> [a] <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> [a]
+flippedTake <span class="fu">=</span> foldr _f _z
+
+foldr _f _z [] <span class="fu">=</span> const []
+
+foldr _f _z (x<span class="fu">:</span>xs) <span class="fu">=</span>
+    \n <span class="ot">-&gt;</span>
+        <span class="kw">if</span> n <span class="fu">&gt;</span> <span class="dv">0</span>
+          <span class="kw">then</span> x <span class="fu">:</span> flippedTake xs (n <span class="fu">-</span> <span class="dv">1</span>)
+          <span class="kw">else</span> []</code></pre></div>
+<p>After initial substitutions we get our solution for <code>_z</code> and a promising equation for <code>_f</code>:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">_z <span class="fu">=</span> const []
+
+_f x (foldr _f _z xs) <span class="fu">=</span>
+    \n <span class="ot">-&gt;</span>
+        <span class="kw">if</span> n <span class="fu">&gt;</span> <span class="dv">0</span>
+          <span class="kw">then</span> x <span class="fu">:</span> flippedTake xs (n <span class="fu">-</span> <span class="dv">1</span>)
+          <span class="kw">else</span> []</code></pre></div>
+<p>This time <code>foldr _f _z</code> is equal to <code>flippedTake</code>:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">_f x (flippedTake xs) <span class="fu">=</span>
+    \n <span class="ot">-&gt;</span>
+        <span class="kw">if</span> n <span class="fu">&gt;</span> <span class="dv">0</span>
+          <span class="kw">then</span> x <span class="fu">:</span> flippedTake xs (n <span class="fu">-</span> <span class="dv">1</span>)
+          <span class="kw">else</span> []</code></pre></div>
+<p>Great! This function receives <code>flippedTake xs</code> as its second argument, and that is exactly what it needs in order to continue. As usual we rewrite it a bit to be more readable:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">_f x more n <span class="fu">=</span>
+    <span class="kw">if</span> n <span class="fu">&gt;</span> <span class="dv">0</span>
+      <span class="kw">then</span> x <span class="fu">:</span> more (n <span class="fu">-</span> <span class="dv">1</span>)
+      <span class="kw">else</span> []</code></pre></div>
+<p>And finally we use it to complete our fold:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">flippedTake ::</span> [a] <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> [a]
+flippedTake <span class="fu">=</span> foldr f (const [])
+    <span class="kw">where</span>
+    f x more n <span class="fu">=</span>
+        <span class="kw">if</span> n <span class="fu">&gt;</span> <span class="dv">0</span>
+          <span class="kw">then</span> x <span class="fu">:</span> more (n <span class="fu">-</span> <span class="dv">1</span>)
+          <span class="kw">else</span> []</code></pre></div>
+<p>Now we could define <code>myTake</code> as <code>flip flippedTake</code>, but it’s probably better to just discard <code>flippedTake</code> and write <code>myTake</code> directly:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">myTake ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> [a]
+myTake n xs <span class="fu">=</span> foldr f (const []) xs n
+    <span class="kw">where</span>
+    f x more n <span class="fu">=</span>
+        <span class="kw">if</span> n <span class="fu">&gt;</span> <span class="dv">0</span>
+          <span class="kw">then</span> x <span class="fu">:</span> more (n <span class="fu">-</span> <span class="dv">1</span>)
+          <span class="kw">else</span> []</code></pre></div>
+<p>So what have we learned so far? For stateful folds we have to keep in mind that the result of the fold has to be a function:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">flippedTake ::</span> [a] <span class="ot">-&gt;</span> (<span class="dt">Int</span> <span class="ot">-&gt;</span> [a])</code></pre></div>
+<p>That means that the <code>r</code> in the type signature of <code>foldr</code> becomes a function type:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- Stateful folds</span>
+foldr
+<span class="ot">    ::</span> (a <span class="ot">-&gt;</span> (s <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> s <span class="ot">-&gt;</span> r)
+    <span class="ot">-&gt;</span> (s <span class="ot">-&gt;</span> r)
+    <span class="ot">-&gt;</span> [a]
+    <span class="ot">-&gt;</span> s <span class="ot">-&gt;</span> r</code></pre></div>
+<p>It also means that the first argument is a function that receives <em>three</em> arguments: the current list element, the remainder of the fold (parameterised on next/updated state) as well as the current state. By the way, nothing stops us from introducing additional state arguments, should we need them, which is a bit nicer than tuples:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- Stateful folds with two state variables</span>
+foldr
+<span class="ot">    ::</span> (a <span class="ot">-&gt;</span> (s1 <span class="ot">-&gt;</span> s2 <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> s1 <span class="ot">-&gt;</span> s2 <span class="ot">-&gt;</span> r)
+    <span class="ot">-&gt;</span> (s1 <span class="ot">-&gt;</span> s2 <span class="ot">-&gt;</span> r)
+    <span class="ot">-&gt;</span> [a]
+    <span class="ot">-&gt;</span> s1 <span class="ot">-&gt;</span> s2 <span class="ot">-&gt;</span> r</code></pre></div>
+<p>This also answers our question from earlier: <code>foldr</code> can handle stateful folds on its own, so we don’t need something more powerful.</p>
+</section>
+<section id="example-sum" class="level3">
+<h3>Example: sum</h3>
+<p>Alright, next example: <code>sum</code> or rather <code>mySum</code>. We don’t want the naive version, but the efficient one, which looks like this:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">mySumExplicit ::</span> (<span class="dt">Num</span> a) <span class="ot">=&gt;</span> [a] <span class="ot">-&gt;</span> a
+mySumExplicit <span class="fu">=</span> go <span class="dv">0</span>
+    <span class="kw">where</span>
+    go s&#39; [] <span class="fu">=</span> s&#39;
+    go s&#39; (x<span class="fu">:</span>xs) <span class="fu">=</span>
+        <span class="kw">let</span> s <span class="fu">=</span> s&#39; <span class="fu">+</span> x
+        <span class="kw">in</span> s <span class="ot">`seq`</span> go s xs</code></pre></div>
+<p>The whole recursion happens in <code>go</code>, so that is the function we would turn into a fold. But just like with <code>take</code> it’s currently not in the right shape, because state arguments have to come <em>after</em> the list:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">mySumExplicit2 ::</span> (<span class="dt">Num</span> a) <span class="ot">=&gt;</span> [a] <span class="ot">-&gt;</span> a
+mySumExplicit2 xs <span class="fu">=</span> go xs <span class="dv">0</span>
+    <span class="kw">where</span>
+    go [] s&#39; <span class="fu">=</span> s&#39;
+    go (x<span class="fu">:</span>xs) s&#39; <span class="fu">=</span>
+        <span class="kw">let</span> s <span class="fu">=</span> s&#39; <span class="fu">+</span> x
+        <span class="kw">in</span> s <span class="ot">`seq`</span> go xs s</code></pre></div>
+<p>Let’s turn everything into lambda form one last time (we will do this in our head in the future):</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">mySumExplicit3 ::</span> (<span class="dt">Num</span> a) <span class="ot">=&gt;</span> [a] <span class="ot">-&gt;</span> a
+mySumExplicit3 xs <span class="fu">=</span> go xs <span class="dv">0</span>
+    <span class="kw">where</span>
+    go [] <span class="fu">=</span> \s&#39; <span class="ot">-&gt;</span> s&#39;
+    go (x<span class="fu">:</span>xs) <span class="fu">=</span>
+        \s&#39; <span class="ot">-&gt;</span>
+            <span class="kw">let</span> s <span class="fu">=</span> s&#39; <span class="fu">+</span> x
+            <span class="kw">in</span> s <span class="ot">`seq`</span> go xs s</code></pre></div>
+<p>Now we can write our template and equations:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">mySum ::</span> (<span class="dt">Num</span> a) <span class="ot">=&gt;</span> [a] <span class="ot">-&gt;</span> a
+mySum xs <span class="fu">=</span> foldr _f _z xs <span class="dv">0</span>
+
+foldr _f _z [] <span class="fu">=</span> id
+foldr _f _z (x<span class="fu">:</span>xs) <span class="fu">=</span>
+    \s&#39; <span class="ot">-&gt;</span>
+        <span class="kw">let</span> s <span class="fu">=</span> s&#39; <span class="fu">+</span> x
+        <span class="kw">in</span> s <span class="ot">`seq`</span> foldr _f _z xs s</code></pre></div>
+<p>Notice a slight difference: In all our previous examples the fold had its own name like <code>myReverse = foldr _f _z</code>, so we used that name in the recursive case. But here our fold doesn’t actually have a name, so we just use <code>foldr _f _z</code> directly on the right hand side. From here we proceed as usual:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">_z <span class="fu">=</span> id
+
+_f x (foldr _f _z xs) <span class="fu">=</span>
+    \s&#39; <span class="ot">-&gt;</span>
+        <span class="kw">let</span> s <span class="fu">=</span> s&#39; <span class="fu">+</span> x
+        <span class="kw">in</span> s <span class="ot">`seq`</span> foldr _f _z xs s</code></pre></div>
+<p>Once again notice that the <code>foldr _f _z xs</code> on the right hand side is just the second argument to <code>_f</code>, and we move the lambda to the other side, too:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">_f x more s&#39; <span class="fu">=</span>
+    <span class="kw">let</span> s <span class="fu">=</span> s&#39; <span class="fu">+</span> x
+    <span class="kw">in</span> s <span class="ot">`seq`</span> more s</code></pre></div>
+<p>This can be written much more succinctly using the <code>($!)</code> operator:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">_f x more s <span class="fu">=</span> more <span class="fu">$!</span> s <span class="fu">+</span> x</code></pre></div>
+<p>And thus we’re done:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">mySum ::</span> (<span class="dt">Num</span> a) <span class="ot">=&gt;</span> [a] <span class="ot">-&gt;</span> a
+mySum xs <span class="fu">=</span>
+    <span class="kw">let</span> f x more s <span class="fu">=</span> more <span class="fu">$!</span> s <span class="fu">+</span> x
+    <span class="kw">in</span> foldr f id xs <span class="dv">0</span></code></pre></div>
+</section>
+<section id="example-foldl" class="level3">
+<h3>Example: foldl’</h3>
+<p>So what are these left folds we have been talking about? Let me just show you one way to define them:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">foldl&#39;Explicit ::</span> (r <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> r <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> r
+foldl&#39;Explicit f <span class="fu">=</span> go
+    <span class="kw">where</span>
+    go s&#39; [] <span class="fu">=</span> s&#39;
+    go s&#39; (x<span class="fu">:</span>xs) <span class="fu">=</span>
+        <span class="kw">let</span> s <span class="fu">=</span> f s&#39; x
+        <span class="kw">in</span> s <span class="ot">`seq`</span> go s xs</code></pre></div>
+<p>Doesn’t that look familiar? Yeah, almost like we have written the same thing just a moment ago. Indeed, this function looks a lot like <code>mySumExplicit</code>, except that it abstracts over the way the state is combined with the next list element, and over the initial state. If we had defined this function earlier, we could have written <code>mySum</code> simply as:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">mySum2 ::</span> (<span class="dt">Num</span> a) <span class="ot">=&gt;</span> [a] <span class="ot">-&gt;</span> a
+mySum2 <span class="fu">=</span> foldl&#39;Explicit (<span class="fu">+</span>) <span class="dv">0</span></code></pre></div>
+<p>But at the same time we were able to define <code>mySum</code> in terms of <code>foldr</code> just as well, except that it was slightly longer, and the similarity suggests that we should be able to write <code>foldl'</code> as an actual fold, too. So what if we define left folds in terms of <code>foldl'</code> and <code>foldl'</code> in terms of <code>foldr</code>? Let’s see if we can.</p>
+<p>Before we start a note about the strange name: Why do we call it <code>foldl'</code> and not just <code>foldl</code>? Good question. Whimsy, I guess. Well, there is this conspiracy theory that if you ever use the name <code>foldl</code> in your code, an evil demon created by the secret Haskell committee will appear, rip apart your computer and eat all your RAM. Some people have reported sightings of the creature, but before they could ever take a picture, their system would crash.</p>
+<p>Alright, enough horror stories. Once again we need to flip the inner function.</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">foldl&#39;Explicit2 ::</span> (r <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> r <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> r
+foldl&#39;Explicit2 f s0 xs <span class="fu">=</span> go xs s0
+    <span class="kw">where</span>
+    go [] s&#39; <span class="fu">=</span> s&#39;
+    go (x<span class="fu">:</span>xs) s&#39; <span class="fu">=</span>
+        <span class="kw">let</span> s <span class="fu">=</span> f s&#39; x
+        <span class="kw">in</span> s <span class="ot">`seq`</span> go xs s</code></pre></div>
+<p>From that we can write our template:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">myFoldl&#39; ::</span> (r <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> r <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> r
+myFoldl&#39; f s0 xs <span class="fu">=</span> foldr _f _z xs s0</code></pre></div>
+<p>This time we won’t even bother turning everything into lambdas first. We just turn the template as is into equations, so we get an extra argument <code>s'</code> everywhere:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">foldr _f _z [] s&#39; <span class="fu">=</span> s&#39;
+foldr _f _z (x<span class="fu">:</span>xs) s&#39; <span class="fu">=</span>
+    <span class="kw">let</span> s <span class="fu">=</span> f s&#39; x
+    <span class="kw">in</span> s <span class="ot">`seq`</span> foldr _f _z xs s</code></pre></div>
+<p>And substitute:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">_z s&#39; <span class="fu">=</span> s&#39;
+_z <span class="fu">=</span> id
+
+_f x (foldr _f _z xs) s&#39; <span class="fu">=</span>
+    <span class="kw">let</span> s <span class="fu">=</span> f s&#39; x
+    <span class="kw">in</span> s <span class="ot">`seq`</span> foldr _f _z xs s</code></pre></div>
+<p>And rename:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">_f x more s&#39; <span class="fu">=</span>
+    <span class="kw">let</span> s <span class="fu">=</span> f s&#39; x
+    <span class="kw">in</span> s <span class="ot">`seq`</span> more s</code></pre></div>
+<p>And use <code>($!)</code>:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">_f x more s <span class="fu">=</span> more <span class="fu">$!</span> f s x</code></pre></div>
+<p>And complete:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">myFoldl&#39; ::</span> (r <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> r <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> r
+myFoldl&#39; f s0 xs <span class="fu">=</span>
+    <span class="kw">let</span> g x more s <span class="fu">=</span> more <span class="fu">$!</span> f s x
+    <span class="kw">in</span> foldr g id xs s0</code></pre></div>
+<p>So indeed left folds are just special right folds, but they are quite handy for some stateful folds, most notably the strict ones. Examples include calculating sums (initial state 0, add every element), products (initial state 1, multiply by every element),</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">myProduct ::</span> (<span class="dt">Num</span> a) <span class="ot">=&gt;</span> [a] <span class="ot">-&gt;</span> a
+myProduct <span class="fu">=</span> myFoldl&#39; (<span class="fu">*</span>) <span class="dv">1</span></code></pre></div>
+<p>and the function that computes the length of the argument list (start at 0, increment state for every list element):</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">myLength ::</span> [a] <span class="ot">-&gt;</span> <span class="dt">Int</span>
+myLength <span class="fu">=</span> myFoldl&#39; (\s _ <span class="ot">-&gt;</span> s <span class="fu">+</span> <span class="dv">1</span>) <span class="dv">0</span></code></pre></div>
+<p>However, keep in mind that left folds are always strict in the full list, not necessarily the <em>elements</em>, but they will always reach the empty list case before they can answer. That’s why there aren’t too many use cases for left folds.</p>
+</section>
+<section id="example-foldl-1" class="level3">
+<h3>Example: foldl</h3>
+<p>Alright, alright, I was lying about the evil demon. There is an actual <code>foldl</code> function that is pretty much the same as <code>foldl'</code>, except that it doesn’t force evaluation of the state at every step, so it builds up an expression in memory as it traverses the list:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">myFoldl ::</span> (s <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> s) <span class="ot">-&gt;</span> s <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> s
+myFoldl f s0 xs <span class="fu">=</span>
+    foldr (\x more s <span class="ot">-&gt;</span> more (f s x)) id xs s0</code></pre></div>
+<p>Since an unevaluated expression usually isn’t what we would want, this function is rarely useful. The reason is that <code>foldl</code> still cannot produce, not even lazily, before the whole list is traversed. In fact I couldn’t think of any use cases, until I was made aware of <code>reverse</code>, which is indeed a really good left fold:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">myReverse2 ::</span> [a] <span class="ot">-&gt;</span> [a]
+myReverse2 <span class="fu">=</span> myFoldl (flip (<span class="fu">:</span>)) []</code></pre></div>
+<p>In fact this definition of <code>reverse</code> is far better than our last one that used <code>(++)</code>. In general if you’re building something <em>from the back</em>, and there would be no benefit in forced evaluation, then <code>foldl</code> may be the function to use.</p>
+</section>
+<section id="exercises-2" class="level3">
+<h3>Exercises</h3>
+<p>Implement <code>drop</code> using the following template:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">myDrop ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> [a]
+myDrop n xs <span class="fu">=</span> foldr _f _z xs n</code></pre></div>
+<p>Implement a function <code>repInc</code> (<q>replicate increasingly</q>) using the template below such that it satisfies the test cases below. It should replicate the first element once, the second element twice, the third element three times, etc.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- Template:</span>
+<span class="ot">repInc ::</span> [a] <span class="ot">-&gt;</span> [a]
+repInc xs <span class="fu">=</span> foldr _f _z xs <span class="dv">1</span>
+
+<span class="co">-- Test cases:</span>
+repInc <span class="st">&quot;a&quot;</span>     <span class="fu">=</span> <span class="st">&quot;a&quot;</span>
+repInc <span class="st">&quot;abc&quot;</span>   <span class="fu">=</span> <span class="st">&quot;abbccc&quot;</span>
+repInc <span class="st">&quot;abcde&quot;</span> <span class="fu">=</span> <span class="st">&quot;abbcccddddeeeee&quot;</span>
+
+take <span class="dv">10</span> (repInc [<span class="dv">1</span><span class="fu">..</span>]) <span class="fu">=</span> [<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">3</span>,<span class="dv">3</span>,<span class="dv">4</span>,<span class="dv">4</span>,<span class="dv">4</span>,<span class="dv">4</span>]</code></pre></div>
+<p>Implement <code>(!!?)</code> using the template below such that it satisfies the test cases below. It should return the element at the given position, if it exists.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- Template:</span>
+<span class="ot">(!!?) ::</span> [a] <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> a
+(<span class="fu">!!?</span>) <span class="fu">=</span> foldr _f _z
+
+<span class="co">-- Test cases:</span>
+<span class="st">&quot;abcde&quot;</span> <span class="fu">!!?</span> <span class="dv">0</span> <span class="fu">=</span> <span class="dt">Just</span> <span class="ch">&#39;a&#39;</span>
+<span class="st">&quot;abcde&quot;</span> <span class="fu">!!?</span> <span class="dv">2</span> <span class="fu">=</span> <span class="dt">Just</span> <span class="ch">&#39;c&#39;</span>
+<span class="st">&quot;abcde&quot;</span> <span class="fu">!!?</span> <span class="dv">4</span> <span class="fu">=</span> <span class="dt">Just</span> <span class="ch">&#39;e&#39;</span>
+<span class="st">&quot;abcde&quot;</span> <span class="fu">!!?</span> <span class="dv">6</span> <span class="fu">=</span> <span class="dt">Nothing</span>
+<span class="st">&quot;abcde&quot;</span> <span class="fu">!!?</span> <span class="dv">8</span> <span class="fu">=</span> <span class="dt">Nothing</span>
+<span class="st">&quot;abcde&quot;</span> <span class="fu">!!?</span> (<span class="fu">-</span><span class="dv">1</span>) <span class="fu">=</span> <span class="dt">Nothing</span></code></pre></div>
+<p>Implement <code>dropEveryOther</code> using the template below. It should drop every other element of the argument list.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- Template:</span>
+<span class="ot">dropEveryOther ::</span> [a] <span class="ot">-&gt;</span> [a]
+dropEveryOther xs <span class="fu">=</span> foldr _f _z xs <span class="dt">True</span>
+
+<span class="co">-- Test cases:</span>
+dropEveryOther <span class="st">&quot;abcdef&quot;</span>  <span class="fu">=</span> <span class="st">&quot;ace&quot;</span>
+dropEveryOther <span class="st">&quot;abcdefg&quot;</span> <span class="fu">=</span> <span class="st">&quot;aceg&quot;</span>
+
+take <span class="dv">5</span> (dropEveryOther [<span class="dv">0</span><span class="fu">..</span>]) <span class="fu">=</span> [<span class="dv">0</span>,<span class="dv">2</span>,<span class="dv">4</span>,<span class="dv">6</span>,<span class="dv">8</span>]</code></pre></div>
+</section>
+</section>
+<section id="reverse-state" class="level2">
+<h2>Reverse state</h2>
+<p>Now that we have mastered the algebraic part of the story it’s time to get a more intuitive understanding. The goal is to be able to write folds <em>directly</em>, not by deriving them from an explicit recursive definition. This intuition will not only make us better at <em>writing</em> folds, but will also help us at <em>reading</em> them.</p>
+<p>The state we have seen in the last section has been <q>forward</q> (or perhaps <q>inward</q>) in the sense that we started at the head of the list with an initial state and then manipulated it as we traversed the list. Then <code>_z</code> (which is a function in the stateful case) would receive the final state. As the name suggests <em>reverse state</em> is <q>backward</q> (or <q>outward</q>) in the sense that the initial state is given by <code>_z</code> and is manipulated in the outward direction.</p>
+<p>Here is the enlightening part: all folds involve reverse state. In fact folds are <em>completely about</em> reverse state. Let’s look at a few simple examples.</p>
+<section id="the-identity-fold" class="level3">
+<h3>The identity fold</h3>
+<p>Is there a fold that just returns the original list unchanged? In other words, are there <code>_f</code> and <code>_z</code> such that that <code>foldr _f _z = id</code>? Let’s see:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">foldr _f _z [] <span class="fu">=</span> id []
+foldr _f _z [] <span class="fu">=</span> []
+_z <span class="fu">=</span> []
+
+foldr _f _z (x<span class="fu">:</span>xs) <span class="fu">=</span> id (x<span class="fu">:</span>xs)
+foldr _f _z (x<span class="fu">:</span>xs) <span class="fu">=</span> x<span class="fu">:</span>xs
+_f x (foldr _f _z xs) <span class="fu">=</span> x<span class="fu">:</span>xs
+_f x (id xs) <span class="fu">=</span> x<span class="fu">:</span>xs</code></pre></div>
+<p>We’re stuck with the second equation, but in order to continue we just need to realise that <code>xs = id xs</code>:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">_f x (id xs) <span class="fu">=</span> x <span class="fu">:</span> id xs
+_f x more <span class="fu">=</span> x <span class="fu">:</span> more
+_f <span class="fu">=</span> (<span class="fu">:</span>)</code></pre></div>
+<p>Indeed, there is an identity fold:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">idFold ::</span> [a] <span class="ot">-&gt;</span> [a]
+idFold <span class="fu">=</span> foldr (<span class="fu">:</span>) []</code></pre></div>
+<p>Now let’s step back for a moment and review what the recursive definition would have looked like:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">idFoldExplicit ::</span> [a] <span class="ot">-&gt;</span> [a]
+idFoldExplicit [] <span class="fu">=</span> []
+idFoldExplicit (x<span class="fu">:</span>xs) <span class="fu">=</span> x <span class="fu">:</span> idFoldExplicit xs</code></pre></div>
+<p>And let me rewrite the non-empty clause slightly:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">idFoldExplicit ::</span> [a] <span class="ot">-&gt;</span> [a]
+idFoldExplicit [] <span class="fu">=</span> []
+idFoldExplicit (x<span class="fu">:</span>xs) <span class="fu">=</span>
+    <span class="kw">let</span> s <span class="fu">=</span> idFoldExplicit xs
+    <span class="kw">in</span> x <span class="fu">:</span> s</code></pre></div>
+<p>Even though it’s not quite the same thing as <code>id</code>, because it does actually traverse the list, it’s semantically indistinguishable from <code>id</code>. But more interestingly there is a pattern:</p>
+<ul>
+<li>I got <code>x : xs</code>.</li>
+<li>What’s my result for <code>xs</code>?</li>
+<li>Let’s call that one <code>s</code>.</li>
+<li>Then the result for <code>x : xs</code> is <code>x : s</code>.</li>
+</ul>
+<p>This is actually a stateful pattern, except that the current state is not recevied from outside and then sent to deeper recursion levels potentially modified, but rather that the current state is received from inside, from deeper recursion levels, modified (by prepending the <code>x</code>) and then sent outward (<q>sending outward</q> really just means <q>returning</q>). Also instead of receiving the initial state from outside, here the initial state is given by the base case for the empty list, i.e. the innermost layer of recursion. It’s <em>reverse state</em>, state with the propagation direction flipped.</p>
+<p>But something is interesting about reverse state: the base case (the initial state) does not have to be reachable. Try <code>idFold</code> for an infinite list, and it will still work. The reason is that the <code>(:)</code> constructor isn’t actually strict in its second argument and therefore not strict in the initial state. If you pattern-match on <code>idFold [1..]</code>, then the answer is <code>1 : idFold [2..]</code>. In order to return the head, the previous state wasn’t even needed.</p>
+</section>
+<section id="a-semi-constant-fold" class="level3">
+<h3>A semi-constant fold</h3>
+<p>Let’s try something:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">finite ::</span> [a] <span class="ot">-&gt;</span> ()
+finite <span class="fu">=</span> foldr (\_ s <span class="ot">-&gt;</span> s) ()</code></pre></div>
+<p>What is this? Give it a list <code>x : xs</code>, and it will ask itself: <q>What is my result for <code>xs</code>?</q> It will call that result <code>s</code>. Then it will just return <code>s</code> unchanged. For finite lists the fold will eventually reach the end of the list, at which point it will know what the initial <code>s</code> is: <code>()</code>. Since it was never changed (remember that <code>_f</code> just returned the <code>s</code> that it received), the final result of the fold is also <code>()</code>.</p>
+<p>However, for infinite lists the fold will never actually reach a point when it can know what the initial state is. What is <code>finite [0..]</code>?</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">  finite [<span class="dv">0</span><span class="fu">..</span>]
+<span class="fu">=</span> finite (<span class="dv">0</span> <span class="fu">:</span> [<span class="dv">1</span><span class="fu">..</span>])
+<span class="fu">=</span> (\_ s <span class="ot">-&gt;</span> s) <span class="dv">0</span> (finite [<span class="dv">1</span><span class="fu">..</span>])
+<span class="fu">=</span> finite [<span class="dv">1</span><span class="fu">..</span>]</code></pre></div>
+<p>Evidently this will keep going forever. Therefore <code>finite</code> isn’t actually a constant function. It will eventually return <code>()</code> for every finite list, but for infinite lists the result is undefined, or as we like to call it in Haskell, the result is <code>⊥</code> (<q>bottom</q>).</p>
+<p>A different (but equivalent) way to explain why this function never returns for infinite lists is that its <code>_f</code> is clearly strict in its second argument: <code>_f x s = s</code>, therefore <code>_f x ⊥ = ⊥</code>. Therefore it will depend on the recursive result, which will in turn depend on the recursive result, etc.</p>
+</section>
+<section id="example-null" class="level3">
+<h3>Example: null</h3>
+<p>Regarding the amount of traversal done by a fold the <code>null</code> function is in a sense the exact opposite of the <code>finite</code> function, because except for one edge case it will never traverse the full list.</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">myNull ::</span> [a] <span class="ot">-&gt;</span> <span class="dt">Bool</span>
+myNull <span class="fu">=</span> foldr (\_ _ <span class="ot">-&gt;</span> <span class="dt">False</span>) <span class="dt">True</span></code></pre></div>
+<p>If you look at the way <code>_f</code> is defined, it’s really obvious: When this function receives <code>x : xs</code>, it doesn’t even ask the question what its result for <code>xs</code> is. It just returns <code>False</code> and is done. The only way this function can return <code>True</code> is when it receives <code>[]</code> right away, because every non-empty list would cause it to return <code>False</code>.</p>
+<p>Here <code>_f</code> is obviously non-strict. But not only that, the recursive result isn’t used at all, so even if you would evaluate this fold’s result to normal form, it still wouldn’t traverse the list. There is only one case when <code>null</code> looks at the entire list, and that is the empty list.</p>
+</section>
+<section id="heads-tails-and-a-digression" class="level3">
+<h3>Heads, tails and a digression</h3>
+<p>Usage of the predefined functions <code>head</code> and <code>tail</code> is a clear sign of <em>boolean blindness</em>. Let me show you an example to explain what this means:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">printHeadBlind ::</span> (<span class="dt">Show</span> a) <span class="ot">=&gt;</span> [a] <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+printHeadBlind xs <span class="fu">=</span>
+    <span class="kw">if</span> null xs
+      <span class="kw">then</span> putStrLn <span class="st">&quot;Empty.&quot;</span>
+      <span class="kw">else</span> <span class="co">{- blind: -}</span> print (head xs)</code></pre></div>
+<p>The <em>boolean-blind</em> region of this code is the <code>else</code> branch. We (the programmer) have established as a fact that the argument we give to <code>head</code> can never be the empty list, in this case by branching on <code>null xs</code>, but within the boolean-blind region our program forgot that fact and used the uninformed <code>head</code>, which in turn has to check whether the list is empty or not. The <code>printHeadBlind</code> function <em>is</em> safe, but that safety was not established <em>by construction</em>, but rather by us, the programmer, knowing more about the circumstances than the code itself. This is a recipe for disaster, once we have to refactor our code.</p>
+<p>The reason this code is boolean-blind is that the <code>null</code> function reduces its knowledge about the shape of the list to literally a single bit of information, but in the <code>then</code> branch we would have needed more than that. The way to eliminate boolean-blindness thus is to <em>preserve</em> all the information we need. Enter <code>safeHead</code>:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">safeHead ::</span> [a] <span class="ot">-&gt;</span> <span class="dt">Maybe</span> a
+safeHead <span class="fu">=</span> foldr (\x _ <span class="ot">-&gt;</span> <span class="dt">Just</span> x) <span class="dt">Nothing</span></code></pre></div>
+<p>This function returns both the information whether the list is empty or not <em>and</em> the head element. Then instead of <code>if</code>-branching on a boolean we would <code>maybe</code>-branch on the result of <code>safeHead</code>:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">printHead ::</span> (<span class="dt">Show</span> a) <span class="ot">=&gt;</span> [a] <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+printHead <span class="fu">=</span>
+    maybe (putStrLn <span class="st">&quot;Empty.&quot;</span>) print <span class="fu">.</span>
+    safeHead</code></pre></div>
+<p>This function is safe by construction. It has no boolean-blind regions.</p>
+<p>But notice what the code does: It translates the argument list to a <code>Maybe</code>, and then folds it using <code>Maybe</code>. Why don’t we just fold the list directly?</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">printHead2 ::</span> (<span class="dt">Show</span> a) <span class="ot">=&gt;</span> [a] <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+printHead2 <span class="fu">=</span>
+    foldr (\x _ <span class="ot">-&gt;</span> print x)
+          (putStrLn <span class="st">&quot;Empty.&quot;</span>)</code></pre></div>
+<p>And that raises the question: Do we actually ever need the <code>safeHead</code> function? We can always just use <code>foldr</code> and save ourselves the trouble of converting to <code>Maybe</code> first, which, if you think about it, is just a list type with a maximum length of 1.</p>
+<p>What about <code>tail</code>? Well, we will talk about that one in the exercises below. =)</p>
+</section>
+<section id="example-bisect" class="level3">
+<h3>Example: bisect</h3>
+<p>For some algorithms like merge-sort it’s useful to bisect lists. You might be thinking of breaking them apart in the middle, but that would require knowing the length. A better idea is to split lists by alternating elements (think of unzipping). Here is the type signature:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">bisect ::</span> [a] <span class="ot">-&gt;</span> ([a], [a])</code></pre></div>
+<p>And here are a few test cases:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">bisect []        <span class="fu">=</span> ([],    []   )
+bisect [<span class="dv">0</span>]       <span class="fu">=</span> ([<span class="dv">0</span>],   []   )
+bisect [<span class="dv">0</span>,<span class="dv">1</span>]     <span class="fu">=</span> ([<span class="dv">0</span>],   [<span class="dv">1</span>]  )
+bisect [<span class="dv">0</span>,<span class="dv">1</span>,<span class="dv">2</span>]   <span class="fu">=</span> ([<span class="dv">0</span>,<span class="dv">2</span>], [<span class="dv">1</span>]  )
+bisect [<span class="dv">0</span>,<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>] <span class="fu">=</span> ([<span class="dv">0</span>,<span class="dv">2</span>], [<span class="dv">1</span>,<span class="dv">3</span>])
+
+bisect [<span class="dv">0</span>,<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">4</span>,<span class="dv">5</span>,<span class="dv">6</span>,<span class="dv">7</span>,<span class="dv">8</span>,<span class="dv">9</span>] <span class="fu">=</span>
+    ([<span class="dv">0</span>,<span class="dv">2</span>,<span class="dv">4</span>,<span class="dv">6</span>,<span class="dv">8</span>], [<span class="dv">1</span>,<span class="dv">3</span>,<span class="dv">5</span>,<span class="dv">7</span>,<span class="dv">9</span>])</code></pre></div>
+<p>There are a few ways to do this, but of course we are interested in a way that can be expressed as a fold, which means that we can only ever look at a single list element at any step. If you’re not used to this restriction, this might actually be quite challenging, so I invite you to stop here and just try to do it on your own first.</p>
+<p>Given an element <code>x</code> and <code>more = bisect xs</code>, what would <code>bisect (x : xs)</code> be? Template:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">bisect ::</span> [a] <span class="ot">-&gt;</span> ([a], [a])
+bisect <span class="fu">=</span> foldr (\x more <span class="ot">-&gt;</span> _) ([], [])</code></pre></div>
+<p>Well, <code>more</code> is a tuple, and we would prepend <code>x</code> to one of its components, but which one?</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">bisect <span class="fu">=</span>
+    foldr (\x more <span class="ot">-&gt;</span>
+               <span class="kw">let</span> (ys1, ys2) <span class="fu">=</span> more
+               <span class="kw">in</span> _)
+          ([], [])</code></pre></div>
+<p>There is actually a really simple way to do it. But first let’s look at a more complicated way. In the template <code>more</code> is a tuple:</p>
+<p>If we just prepend to the left component <code>ys1</code>, then we will always prepend to the left component recursively and ultimately leave the right component empty. Same for <code>ys2</code>. What we need is some kind of state that allows us to go back and forth between the two. We could just add a piece of boolean state to do that:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">bisectS ::</span> [a] <span class="ot">-&gt;</span> ([a], [a])
+bisectS xs <span class="fu">=</span>
+    foldr (\x more l <span class="ot">-&gt;</span>
+               <span class="kw">let</span> (ys1, ys2) <span class="fu">=</span> more (not l)
+               <span class="kw">in</span> <span class="kw">if</span> l
+                    <span class="kw">then</span> (x<span class="fu">:</span>ys1, ys2)
+                    <span class="kw">else</span> (ys1, x<span class="fu">:</span>ys2))
+          (const ([], []))
+          xs
+          <span class="dt">True</span></code></pre></div>
+<p>However, as noted there is a much more elegant way using reverse state: Just swap the tuples:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">bisect ::</span> [a] <span class="ot">-&gt;</span> ([a], [a])
+bisect <span class="fu">=</span>
+    foldr (\x more <span class="ot">-&gt;</span>
+               <span class="kw">let</span> (ys1, ys2) <span class="fu">=</span> more
+               <span class="kw">in</span> (x<span class="fu">:</span>ys2, ys1))
+          ([], [])</code></pre></div>
+<p>Nice, isn’t it? Let’s clean this up a bit:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">bisect&#39; ::</span> [a] <span class="ot">-&gt;</span> ([a], [a])
+bisect&#39; <span class="fu">=</span>
+    foldr (\x (ys1, ys2) <span class="ot">-&gt;</span> (x<span class="fu">:</span>ys2, ys1))
+          ([], [])</code></pre></div>
+<p>Even nicer!</p>
+<p>But I called this one <code>bisect'</code>, and you might be wondering why. Well, it’s not the same function as <code>bisect</code>! There is a very subtle difference that could be overlooked easily: this one is strict in the tuple that we used to call <code>more</code>, which means that it insists on reaching the base case before the component lists are defined.</p>
+<p>Patterns bound by a lambda are strict by default in Haskell, but patterns bound by <code>let</code> are not. That’s why <code>bisect</code> works on infinite lists, but <code>bisect'</code> doesn’t. Even for finite lists <code>bisect'</code> now shows terrible memory behaviour, because as it waits for the base case to be reached it builds up an expression in memory.</p>
+<p>The way to fix it is to use a lazy (a.k.a. <em>irrefutable</em>) pattern:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">bisect2 ::</span> [a] <span class="ot">-&gt;</span> ([a], [a])
+bisect2 <span class="fu">=</span>
+    foldr (\x <span class="fu">~</span>(ys1, ys2) <span class="ot">-&gt;</span> (x<span class="fu">:</span>ys2, ys1))
+          ([], [])</code></pre></div>
+<p>This one is actually equivalent to <code>bisect</code>.</p>
+</section>
+<section id="exercises-3" class="level3">
+<h3>Exercises</h3>
+<p>TODO</p>
+</section>
+</section>
+<section id="exercise-solutions" class="level2">
+<h2>Exercise solutions</h2>
+<p>Assuming that you are reading this visually and use a somewhat modern browser the solutions are initially invisible, and you need to hover with your pointing device over them to see them. That way you can view individual solutions without spoiling the rest.</p>
+<div class="hover-show">
+<p><strong>myMaybeToList:</strong></p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">myMaybeToList ::</span> <span class="dt">Maybe</span> a <span class="ot">-&gt;</span> [a]
+myMaybeToList <span class="fu">=</span> maybe [] (<span class="fu">:</span> [])</code></pre></div>
+<p>Derivation:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">myMaybeToList <span class="fu">=</span> maybe _n _j
+
+maybe _n _j <span class="dt">Nothing</span> <span class="fu">=</span> []
+_n <span class="fu">=</span> []
+
+maybe _n _j (<span class="dt">Just</span> x) <span class="fu">=</span> x <span class="fu">:</span> []
+_j x <span class="fu">=</span> x <span class="fu">:</span> []
+_j <span class="fu">=</span> (<span class="fu">:</span> [])</code></pre></div>
+</div>
+<div class="hover-show">
+<p><strong>mApply:</strong></p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">mApply ::</span> b <span class="ot">-&gt;</span> <span class="dt">Maybe</span> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> b
+mApply defY mf x <span class="fu">=</span> maybe defY (<span class="fu">$</span> x) mf</code></pre></div>
+<p>Derivation:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">mApply _n _j <span class="dt">Nothing</span> <span class="fu">=</span> defY
+_n <span class="fu">=</span> defY
+
+mApply _n _j (<span class="dt">Just</span> f) <span class="fu">=</span> f x
+_j f <span class="fu">=</span> f x
+_j f <span class="fu">=</span> f <span class="fu">$</span> x
+_j <span class="fu">=</span> (<span class="fu">$</span> x)</code></pre></div>
+</div>
+<div class="hover-show">
+<p><strong>myMap:</strong></p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">myMap ::</span> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> [b]
+myMap f <span class="fu">=</span> foldr (\x ys <span class="ot">-&gt;</span> f x <span class="fu">:</span> ys) []</code></pre></div>
+<p>Derivation:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">foldr _f _z [] <span class="fu">=</span> []
+_z <span class="fu">=</span> []
+
+foldr _f _z (x<span class="fu">:</span>xs) <span class="fu">=</span> f x <span class="fu">:</span> myMap f xs
+_f x (foldr _f _z xs) <span class="fu">=</span> f x <span class="fu">:</span> myMap f xs
+_f x (myMap f xs) <span class="fu">=</span> f x <span class="fu">:</span> myMap f xs
+_f x ys <span class="fu">=</span> f x <span class="fu">:</span> ys</code></pre></div>
+</div>
+<div class="hover-show">
+<p><strong>myConcatMap:</strong></p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">myConcatMap ::</span> (a <span class="ot">-&gt;</span> [b]) <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> [b]
+myConcatMap f <span class="fu">=</span> foldr (\x ys <span class="ot">-&gt;</span> f x <span class="fu">++</span> ys) []</code></pre></div>
+<p>Derivation:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">foldr _f _z [] <span class="fu">=</span> []
+_z <span class="fu">=</span> []
+
+foldr _f _z (x<span class="fu">:</span>xs) <span class="fu">=</span> f x <span class="fu">++</span> myConcatMap f xs
+_f x (foldr _f _z xs) <span class="fu">=</span> f x <span class="fu">++</span> myConcatMap f xs
+_f x (myConcatMap f xs) <span class="fu">=</span> f x <span class="fu">++</span> myConcatMap f xs
+_f x ys <span class="fu">=</span> f x <span class="fu">++</span> ys</code></pre></div>
+</div>
+<div class="hover-show">
+<p><strong>myFilter:</strong></p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">myFilter ::</span> (a <span class="ot">-&gt;</span> <span class="dt">Bool</span>) <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> [a]
+myFilter p <span class="fu">=</span>
+    foldr (\x ys <span class="ot">-&gt;</span> <span class="kw">if</span> p x <span class="kw">then</span> x <span class="fu">:</span> ys <span class="kw">else</span> ys) []</code></pre></div>
+<p>Derivation:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">foldr _f _z [] <span class="fu">=</span> []
+_z <span class="fu">=</span> []
+
+foldr _f _z (x<span class="fu">:</span>xs) <span class="fu">=</span> <span class="kw">if</span> p x <span class="kw">then</span> x <span class="fu">:</span> myFilter p xs <span class="kw">else</span> myFilter p xs
+_f x (foldr _f _z xs) <span class="fu">=</span> <span class="kw">if</span> p x <span class="kw">then</span> x <span class="fu">:</span> myFilter p xs <span class="kw">else</span> myFilter p xs
+_f x (myFilter p xs) <span class="fu">=</span> <span class="kw">if</span> p x <span class="kw">then</span> x <span class="fu">:</span> myFilter p xs <span class="kw">else</span> myFilter p xs
+_f x ys <span class="fu">=</span> <span class="kw">if</span> p x <span class="kw">then</span> x <span class="fu">:</span> ys <span class="kw">else</span> ys</code></pre></div>
+</div>
+<div class="hover-show">
+<p><strong>myDrop:</strong></p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">myDrop ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> [a]
+myDrop n xs <span class="fu">=</span> foldr f (const []) xs n
+    <span class="kw">where</span>
+    f x more n <span class="fu">=</span>
+        <span class="kw">if</span> n <span class="fu">&lt;=</span> <span class="dv">0</span>
+          <span class="kw">then</span> x <span class="fu">:</span> more <span class="dv">0</span>
+          <span class="kw">else</span> more (n <span class="fu">-</span> <span class="dv">1</span>)</code></pre></div>
+<p>Derivation:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">foldr _f _z [] n <span class="fu">=</span> []
+_z n <span class="fu">=</span> []
+_z <span class="fu">=</span> const []
+
+foldr _f _z (x<span class="fu">:</span>xs) n <span class="fu">=</span>
+    <span class="kw">if</span> n <span class="fu">&lt;=</span> <span class="dv">0</span>
+      <span class="kw">then</span> x <span class="fu">:</span> xs
+      <span class="kw">else</span> foldr _f _z xs (n <span class="fu">-</span> <span class="dv">1</span>)
+
+_f x (foldr _f _z xs) n <span class="fu">=</span>
+    <span class="kw">if</span> n <span class="fu">&lt;=</span> <span class="dv">0</span>
+      <span class="kw">then</span> x <span class="fu">:</span> xs  <span class="co">-- xs is not in scope, but ...</span>
+      <span class="kw">else</span> foldr _f _z xs (n <span class="fu">-</span> <span class="dv">1</span>)
+
+_f x (foldr _f _z xs) n <span class="fu">=</span>
+    <span class="kw">if</span> n <span class="fu">&lt;=</span> <span class="dv">0</span>
+      <span class="kw">then</span> x <span class="fu">:</span> myDrop <span class="dv">0</span> xs  <span class="co">-- xs = myDrop 0 xs</span>
+      <span class="kw">else</span> foldr _f _z xs (n <span class="fu">-</span> <span class="dv">1</span>)
+
+_f x (foldr _f _z xs) n <span class="fu">=</span>
+    <span class="kw">if</span> n <span class="fu">&lt;=</span> <span class="dv">0</span>
+      <span class="kw">then</span> x <span class="fu">:</span> foldr _f _z xs <span class="dv">0</span>
+      <span class="kw">else</span> foldr _f _z xs (n <span class="fu">-</span> <span class="dv">1</span>)
+
+_f x more n <span class="fu">=</span>
+    <span class="kw">if</span> n <span class="fu">&lt;=</span> <span class="dv">0</span>
+      <span class="kw">then</span> x <span class="fu">:</span> more <span class="dv">0</span>
+      <span class="kw">else</span> more (n <span class="fu">-</span> <span class="dv">1</span>)</code></pre></div>
+</div>
+<div class="hover-show">
+<p><strong>repInc:</strong></p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">repInc ::</span> [a] <span class="ot">-&gt;</span> [a]
+repInc xs <span class="fu">=</span> foldr f (const []) xs <span class="dv">1</span>
+    <span class="kw">where</span>
+    f x more n <span class="fu">=</span> replicate n x <span class="fu">++</span> more (n <span class="fu">+</span> <span class="dv">1</span>)</code></pre></div>
+<p>Derivation:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">foldr _f _z [] n <span class="fu">=</span> []
+_z n <span class="fu">=</span> []
+_z <span class="fu">=</span> const []
+
+foldr _f _z (x<span class="fu">:</span>xs) n <span class="fu">=</span> replicate n x <span class="fu">++</span> foldr _f _z xs (n <span class="fu">+</span> <span class="dv">1</span>)
+_f x (foldr _f _z xs) n <span class="fu">=</span> replicate n x <span class="fu">++</span> foldr _f _z xs (n <span class="fu">+</span> <span class="dv">1</span>)
+_f x more n <span class="fu">=</span> replicate n x <span class="fu">++</span> more (n <span class="fu">+</span> <span class="dv">1</span>)</code></pre></div>
+</div>
+<div class="hover-show">
+<p><strong>(!!?):</strong></p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">(!!?) ::</span> [a] <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> a
+(<span class="fu">!!?</span>) <span class="fu">=</span> foldr f (const <span class="dt">Nothing</span>)
+    <span class="kw">where</span>
+    f x _    <span class="dv">0</span> <span class="fu">=</span> <span class="dt">Just</span> x
+    f _ more n <span class="fu">=</span> more (n <span class="fu">-</span> <span class="dv">1</span>)</code></pre></div>
+<p>Derivation method 1:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">foldr _f _z [] n <span class="fu">=</span> <span class="dt">Nothing</span>
+_z n <span class="fu">=</span> <span class="dt">Nothing</span>
+_z <span class="fu">=</span> const <span class="dt">Nothing</span>
+
+foldr _f _z (x<span class="fu">:</span>xs) n <span class="fu">=</span>
+    <span class="kw">if</span> n <span class="fu">==</span> <span class="dv">0</span> <span class="kw">then</span> <span class="dt">Just</span> x <span class="kw">else</span> xs <span class="fu">!!?</span> (n <span class="fu">-</span> <span class="dv">1</span>)
+
+_f x (foldr _f _z xs) n <span class="fu">=</span>
+    <span class="kw">if</span> n <span class="fu">==</span> <span class="dv">0</span> <span class="kw">then</span> <span class="dt">Just</span> x <span class="kw">else</span> xs <span class="fu">!!?</span> (n <span class="fu">-</span> <span class="dv">1</span>)
+
+_f x (foldr _f _z xs) n <span class="fu">=</span>
+    <span class="kw">if</span> n <span class="fu">==</span> <span class="dv">0</span> <span class="kw">then</span> <span class="dt">Just</span> x <span class="kw">else</span> foldr _f _z xs (n <span class="fu">-</span> <span class="dv">1</span>)
+
+_f x more n <span class="fu">=</span>
+    <span class="kw">if</span> n <span class="fu">==</span> <span class="dv">0</span> <span class="kw">then</span> <span class="dt">Just</span> x <span class="kw">else</span> more (n <span class="fu">-</span> <span class="dv">1</span>)</code></pre></div>
+<p>Derivation method 2:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">foldr _f _z [] n <span class="fu">=</span> <span class="dt">Nothing</span>
+_z n <span class="fu">=</span> <span class="dt">Nothing</span>
+_z <span class="fu">=</span> const <span class="dt">Nothing</span>
+
+foldr _f _z (x<span class="fu">:</span>xs) <span class="dv">0</span> <span class="fu">=</span> <span class="dt">Just</span> x
+_f x (foldr _f _z xs) <span class="dv">0</span> <span class="fu">=</span> <span class="dt">Just</span> x
+_f x _ <span class="dv">0</span> <span class="fu">=</span> <span class="dt">Just</span> x
+
+foldr _f _z (x<span class="fu">:</span>xs) n <span class="fu">|</span> n <span class="fu">/=</span> <span class="dv">0</span> <span class="fu">=</span> xs <span class="fu">!!?</span> (n <span class="fu">-</span> <span class="dv">1</span>)
+_f x (foldr _f _z xs) n <span class="fu">|</span> n <span class="fu">/=</span> <span class="dv">0</span> <span class="fu">=</span> xs <span class="fu">!!?</span> (n <span class="fu">-</span> <span class="dv">1</span>)
+_f x (foldr _f _z xs) n <span class="fu">|</span> n <span class="fu">/=</span> <span class="dv">0</span> <span class="fu">=</span> foldr _f _z xs (n <span class="fu">-</span> <span class="dv">1</span>)
+_f x more n <span class="fu">|</span> n <span class="fu">/=</span> <span class="dv">0</span> <span class="fu">=</span> more (n <span class="fu">-</span> <span class="dv">1</span>)</code></pre></div>
+</div>
+<div class="hover-show">
+<p><strong>dropEveryOther:</strong></p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">dropEveryOther ::</span> [a] <span class="ot">-&gt;</span> [a]
+dropEveryOther xs <span class="fu">=</span> foldr f (const []) xs <span class="dt">True</span>
+    <span class="kw">where</span>
+    f _ more <span class="dt">False</span> <span class="fu">=</span> more <span class="dt">True</span>
+    f x more <span class="dt">True</span>  <span class="fu">=</span> x <span class="fu">:</span> more <span class="dt">False</span></code></pre></div>
+<p>Derivation method 1:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">foldr _f _z [] b <span class="fu">=</span> []
+_z b <span class="fu">=</span> []
+_z <span class="fu">=</span> const []
+
+foldr _f _z (x<span class="fu">:</span>xs) b <span class="fu">=</span>
+    <span class="kw">if</span> b
+      <span class="kw">then</span> x <span class="fu">:</span> foldr _f _z xs <span class="dt">False</span>
+      <span class="kw">else</span> foldr _f _z xs <span class="dt">True</span>
+_f x (foldr _f _z xs) b <span class="fu">=</span>
+    <span class="kw">if</span> b
+      <span class="kw">then</span> x <span class="fu">:</span> foldr _f _z xs <span class="dt">False</span>
+      <span class="kw">else</span> foldr _f _z xs <span class="dt">True</span>
+_f x more b <span class="fu">=</span>
+    <span class="kw">if</span> b
+      <span class="kw">then</span> x <span class="fu">:</span> more <span class="dt">False</span>
+      <span class="kw">else</span> more <span class="dt">True</span></code></pre></div>
+<p>Derivation method 2:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">foldr _f _z [] b <span class="fu">=</span> []
+_z b <span class="fu">=</span> []
+_z <span class="fu">=</span> const []
+
+foldr _f _z (x<span class="fu">:</span>xs) <span class="dt">False</span> <span class="fu">=</span> foldr _f _z xs <span class="dt">True</span>
+_f x (foldr _f _z xs) <span class="dt">False</span> <span class="fu">=</span> foldr _f _z xs <span class="dt">True</span>
+_f x more <span class="dt">False</span> <span class="fu">=</span> more <span class="dt">True</span>
+
+foldr _f _z (x<span class="fu">:</span>xs) <span class="dt">True</span> <span class="fu">=</span> x <span class="fu">:</span> foldr _f _z xs <span class="dt">False</span>
+_f x (foldr _f _z xs) <span class="dt">True</span> <span class="fu">=</span> x <span class="fu">:</span> foldr _f _z xs <span class="dt">False</span>
+_f x more <span class="dt">True</span> <span class="fu">=</span> x <span class="fu">:</span> more <span class="dt">False</span></code></pre></div>
+</div>
+</section>
+</div>
+</main>
+<footer>
+<p>&copy; Ertugrul Söylemez</p>
+<p><a href="../about.html">Legal information</a></p>
+</footer>
+</body>
+</html>
