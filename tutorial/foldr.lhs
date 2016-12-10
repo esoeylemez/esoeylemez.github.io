@@ -25,11 +25,11 @@ understood semantics and properties.
 
 Yet beginning Haskell programmers often struggle even with one of the
 most fundamental list functions, `foldr`, and because of that they often
-write longer and more complicated code than necessary.  This tutorial
-series is an attempt to improve the situation, not necessarily by going
-slower than other tutorials, but by training readers to recognise
-patterns and use equational reasoning to use them.  After all just like
-calculus folds are *tools*, and you should master them.
+write longer and more complicated code than necessary.  This tutorial is
+an attempt to improve the situation, not necessarily by going slower
+than other tutorials, but by training readers to recognise patterns and
+use equational reasoning to use them.  After all just like calculus
+folds are *tools*, and you should master them.
 
 This tutorial is written as a [literate Haskell file](foldr.lhs).
 
