@@ -41,6 +41,9 @@ Tutorials
 [Ledger Teil 2: Buchführungsperioden](tutorial/ledger-02-perioden.html):
   : Periodische Buchführung mit Erfolgskonten
 
+[X sessions with s6](tutorial/s6-xsession.html):
+  : Using a real process supervisor for background daemons
+
 Drafts
 ------
 
