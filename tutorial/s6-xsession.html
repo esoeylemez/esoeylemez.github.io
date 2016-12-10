@@ -116,7 +116,7 @@ s6-supervise (child): fatal: unable to exec run: Permission denied</code></pre>
 <p>As explained earlier all state changes made through <code>s6-svc</code> are ephemeral. If you want to disable a process permanently without deleting its service directory, all you need to do is to create the file <code>down</code> there. For example to disable MPD, you would use the sporty command sequence:</p>
 <pre><code>touch mpd/down
 s6-svc -d mpd</code></pre>
-<p>The second command is needed, because the supervisor does not shut it down automatically, if it’s currently running. It only uses the existence of the <code>down</code> file to decide the initial state of the process. In other to enable it again, just delete that file:</p>
+<p>The second command is needed, because the supervisor does not shut it down automatically, if it’s currently running. It only uses the existence of the <code>down</code> file to decide the initial state of the process. In order to enable it again, just delete that file:</p>
 <pre><code>rm mpd/down
 s6-svc -u mpd</code></pre>
 </section>
