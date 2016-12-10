@@ -278,7 +278,7 @@ command sequence:
 The second command is needed, because the supervisor does not shut it
 down automatically, if it's currently running.  It only uses the
 existence of the `down` file to decide the initial state of the process.
-In other to enable it again, just delete that file:
+In order to enable it again, just delete that file:
 
     rm mpd/down
     s6-svc -u mpd
