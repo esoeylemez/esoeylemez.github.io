@@ -47,5 +47,8 @@ Tutorials
 Drafts
 ------
 
+[Mastering foldr](tutorial/foldr.html):
+  : Mastering the foldr function for lists
+
 [The Monoid Tutorial](tutorial/monoids.html):
   : Monoids as a programming pattern
