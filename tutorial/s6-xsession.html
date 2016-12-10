@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>X sessions with s6 – ertes.eu</title>
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+<meta name="author" content="ertes" />
+<meta name="dcterms.date" content="2016-12-10" />
+<link rel="stylesheet" href="../style.css" />
+<!--[if lt IE 9]>
+<script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+<![endif]-->
+</head>
+<body>
+<header>
+<p class="site-title"><a href="../index.html">ertes.eu</a></p>
+</header>
+<main role="main">
+<h1 class="title">X sessions with s6</h1>
+<p class="meta">by ertes, published on 2016-12-10</p>
+<nav id="toc">
+<h2>Table of contents</h2>
+<ul>
+<li><a href="#supervised-processes">Supervised processes</a><ul>
+<li><a href="#example-urxvtd">Example: urxvtd</a></li>
+<li><a href="#first-test-run">First test run</a></li>
+<li><a href="#example-mpd">Example: MPD</a></li>
+<li><a href="#disabling-processes">Disabling processes</a></li>
+<li><a href="#emacs-server">Emacs server</a></li>
+</ul></li>
+<li><a href="#the-window-manager">The window manager</a></li>
+<li><a href="#conclusion">Conclusion</a></li>
+</ul>
+</nav>
+<div id="content">
+<p>A typical X setup for many people is to have an <code>.xsession</code> script or something similar to start their window manager along with any number of background applications that are relevant to the graphical session. However, this always felt fragile to me and on some occasions actually broke, confirming my feeling. So a few months ago I was looking for a more principled and robust approach, and I figured: hell, why not use an actual process supervisor?</p>
+<p>The idea is simple: Most supervisors don’t actually insist on running as PID 1 (the system’s init process) or even root for that matter, even though that’s their most prominent use case. They will manage your processes just fine without any of that. Since I have successfully used the <a href="http://skarnet.org/software/s6/">s6 supervision suite</a> in the context of Linux containers, I thought it could just as well manage my X session, because I actually have quite a few background processes running all the time, including <em>compton</em>, <em>MPD</em>, <em>redshift</em>, <em>unclutter</em>, <em>urxvtd</em> and <em>xscreensaver</em>.</p>
+<section id="supervised-processes" class="level2">
+<h2>Supervised processes</h2>
+<p>A supervised process is just a process that runs under the wing of s6. That means that s6 will take care of starting and terminating it, and it will be aware of its current state at all times. Also it will make sure that, if enabled, the process is actually running, and that <em>exactly one</em> instance of it is running. For example when the process crashes s6 will restart it. Moreover it will be the correspondent in communicating (or in most cases <em>not</em> communicating) with the process through stdin, stdout and stderr. Most notably it will handle logging, if you ask for it.</p>
+<p>S6 will supervise any process that doesn’t fork. Many programs are written in a less unixy way in that they fork by default and log to syslog, but most of them have a <q>foreground</q> mode, which does exactly the right thing: do not fork, and log to stderr instead of syslog. There is one notable exception, the Emacs server, which I will discuss below.</p>
+<p>The first step to using s6 is to turn your processes into supervised processes. Create a directory somewhere, called your <em>scan directory</em>, which will hold a subdirectory for each background process. We will set up <em>MPD</em> and <em>urxvtd</em> as examples, starting with the latter, but the same steps will work for any other process. I will assume that your scan directory is named <code>~/run</code>, and all relative paths in this article will be relative to that directory (adjust the commands below, if you name it differently):</p>
+<pre><code>mkdir ~/run
+cd ~/run</code></pre>
+<p>Note that this directory needs to be writable during your session, so don’t put it on a read-only filesystem.</p>
+<p>You’re probably tempted to call these supervised processes <em>services</em>, but don’t do that. Services are more than just processes, and there is a separate service management suite built on top of s6, which is not the topic of this article.</p>
+<section id="example-urxvtd" class="level3">
+<h3>Example: urxvtd</h3>
+<p>My terminal emulator is called <a href="http://software.schmorp.de/pkg/rxvt-unicode.html">rxvt-unicode</a>. Typically and preferably every terminal is its own processes, but if you use lots of terminals and create/discard them on the fly all the time (as I do), there is some speed and memory benefit in using <em>urxvtd</em>, the rxvt-unicode <em>daemon</em>.</p>
+<p>Its default mode of operation is as a regular foreground process, which makes it really easy to supervise. First create a directory for it, called its <em>service directory</em> (yes, the term is inappropriate given my note about <q>services</q> above, but that’s s6 terminology, so we’ll go with it):</p>
+<pre><code>mkdir urxvtd</code></pre>
+<p>(One-time reminder: all paths are relative to <code>~/run</code>.) Now create a file named <code>urxvtd/run</code> containing the following shell script:</p>
+<pre><code>#! /usr/bin/env sh
+cd
+exec urxvtd</code></pre>
+<p>Now make that file executable:</p>
+<pre><code>chmod 755 urxvtd/run</code></pre>
+<p>That’s it. The <code>run</code> script will be used by s6 as the process to supervise. Let me repeat that: from the viewpoint of s6 for all intents and purposes this script <em>is</em> the program it should supervise, which is the reason why we <em>exec</em> into the daemon at the end after some minor setup. The <code>cd</code> command just switches into your home directory before executing urxvtd, because s6 starts processes in the service directory, and you probably don’t want all your shells to start there.</p>
+</section>
+<section id="first-test-run" class="level3">
+<h3>First test run</h3>
+<p>Now let’s fire up this baby and see how well it works. To invoke s6 on a scan directory start the <em>scanner</em> called <em>s6-svscan</em> on it:</p>
+<pre><code>s6-svscan .</code></pre>
+<p>You will immediately notice that this too is a foreground process, so you need an extra shell to continue from here (resist the temptation to send s6-svscan to the background for now). Remember to <code>cd ~/run</code> in the new shell. The second thing you will notice is that you get a bunch of new running processes as a side effect, and among them you will indeed find urxvtd. Great!</p>
+<p>The other two processes are s6-svscan, the one you just started, and <em>s6-supervise</em>, the actual supervisor for individual processes. Don’t worry about the number of processes, as the s6 processes are designed to be extremely small. They do their job and nothing else.</p>
+<p>You can control the supervisors of individual processes through <code>s6-svc</code>. For example you can temporarily disable urxvtd by setting its state to <em>down</em>:</p>
+<pre><code>s6-svc -d urxvtd</code></pre>
+<p>The argument <code>urxvtd</code> is actually the path to the service directory. If your current working directory weren’t <code>~/run</code>, you would have to write something like:</p>
+<pre><code>s6-svc -d ~/run/urxvtd</code></pre>
+<p>This command communicates with s6-supervise and in this case requests to terminate the process (and not restart it). S6-supervise will immediately kill the process, and you will find that urxvtd is no longer running. You can bring it back up by setting its state to <em>up</em> again:</p>
+<pre><code>s6-svc -u urxvtd</code></pre>
+<p>Note that s6 always starts from a clean state. That means that the process state is not preserved across runs of s6-svscan. There is a way to disable a process permanently without deleting it, but more on that later. Another interesting thing to note is that if you kill the urxvtd process by yourself using e.g. <code>kill</code>, or if it crashes for some reason, its state will still be <em>up</em>. S6-supervise notices when the process dies unexpectedly and restarts it after a delay of one second.</p>
+<p>There is a separate command called <em>s6-svscanctl</em> to control the scanner itself, the root of your process tree. For the most part you will only need this command in two situations: either to stop the scanner, which will amount to terminating your X session, or to <em>rescan</em> the scan directory for new processes. Run the following command now to terminate the scanner:</p>
+<pre><code>s6-svscanctl -q .</code></pre>
+<p>This command communicates with the s6-svscan instance running in the given directory and tells it to exit, and you can watch your s6-svscan finish and return to your shell. However, it will also print a bunch of worrying messages before it exits:</p>
+<pre><code>s6-svscan: warning: unable to exec finish script .s6-svscan/finish: No such file or directory
+s6-svscan: warning: executing into .s6-svscan/crash
+s6-svscan: fatal: unable to exec .s6-svscan/crash: No such file or directory</code></pre>
+<p>The problem here is that s6-svscan normally refuses to exit by itself. Remember that it was designed as a process that runs as PID 1, a.k.a. the init process, which must never exit. An exiting init process causes a kernel panic. Therefore the normal way to shut it down is to exec into something else, for example a script that handles rebooting the system or powering it off.</p>
+<p>However, we’re not using it as an init process, so we actually want it to exit. The easiest way to do that is to make it exec into something trivial that does nothing, for example an empty shell script. The first warning indicates that s6-svscan execs into <code>.s6-svscan/finish</code> when it is told to exit. The <code>.s6-svscan</code> directory should already exist now, because it is created by s6-svscan. Run the following commands:</p>
+<pre><code>echo &#39;#! /usr/bin/env sh&#39; &gt; .s6-svscan/finish
+chmod 755 .s6-svscan/finish</code></pre>
+<p>If you want you can put some gimmicks into that script to make it print something at the end of your session. We will do that just to see that it works:</p>
+<pre><code>echo &#39;echo &quot;Good bye.&quot;&#39; &gt;&gt; .s6-svscan/finish</code></pre>
+<p>Now start s6-svscan again:</p>
+<pre><code>s6-svscan .</code></pre>
+<p>And from the other shell tell it to exit again:</p>
+<pre><code>s6-svscanctl -q .</code></pre>
+<p>And indeed instead of warnings it exits cleanly with the message <q>Good bye.</q> that we put into our <code>finish</code> script. Alright, let’s start it again:</p>
+<pre><code>s6-svscan .</code></pre>
+<p>Just leave it running from here.</p>
+</section>
+<section id="example-mpd" class="level3">
+<h3>Example: MPD</h3>
+<p>With the <a href="https://www.musicpd.org/">Music Player Daemon</a> (MPD), it’s pretty much the same story, but with a catch: MPD operates in daemon mode by default, which is undesirable. Fortunately it does offer a foreground mode that you can enable through the <code>--no-daemon</code> command line option. Again create a service directory for it:</p>
+<pre><code>mkdir mpd</code></pre>
+<p>Create the script <code>mpd/run</code> as you did with urxvtd before, but pass the <code>--no-daemon</code> option to MPD, and also don’t make it executable just yet:</p>
+<pre><code>#! /usr/bin/env sh
+
+cd
+exec mpd --no-daemon</code></pre>
+<p>If your version of s6 is older than 2.3, then you will notice that as soon as you have created the directory, s6-svscan will periodically produce warnings that it can’t execute your <code>run</code> script. This is because it used to rescan the scan directory periodically by default, but since version 2.3 it no longer does. Using s6-svscanctl you can tell it to rescan when you add new supervised processes (<code>-a</code>) or to kill supervised processes of service directories that you have deleted (<code>-n</code>):</p>
+<pre><code>s6-svscanctl -an .</code></pre>
+<p>At least since running that command you should see the warnings now:</p>
+<pre><code>s6-supervise mpd: warning: unable to spawn ./run - waiting 10 seconds
+s6-supervise (child): fatal: unable to exec run: Permission denied</code></pre>
+<p>They will be printed periodically until you make the script executable:</p>
+<pre><code>chmod 755 mpd/run</code></pre>
+<p>After that command the supervisor will (hopefully) succeed to start MPD. And as with urxvtd you can manage the process through s6-svc.</p>
+<p>Ok, we’re done with the supervisor tutorial. In the next major section we will learn how to add your window manager to the mix and manage your entire X session using s6. For now just shut down s6-svscan again:</p>
+<pre><code>s6-svscanctl -q .</code></pre>
+</section>
+<section id="disabling-processes" class="level3">
+<h3>Disabling processes</h3>
+<p>As explained earlier all state changes made through <code>s6-svc</code> are ephemeral. If you want to disable a process permanently without deleting its service directory, all you need to do is to create the file <code>down</code> there. For example to disable MPD, you would use the sporty command sequence:</p>
+<pre><code>touch mpd/down
+s6-svc -d mpd</code></pre>
+<p>The second command is needed, because the supervisor does not shut it down automatically, if it’s currently running. It only uses the existence of the <code>down</code> file to decide the initial state of the process. In other to enable it again, just delete that file:</p>
+<pre><code>rm mpd/down
+s6-svc -u mpd</code></pre>
+</section>
+<section id="emacs-server" class="level3">
+<h3>Emacs server</h3>
+<p>Unfortunately some programs resist being supervised that easily. The (GNU) Emacs server is a well known example of that, because it insists on forking, if you use the <code>--daemon</code> command line option. I don’t have a good answer on how to supervise those.</p>
+<p>One solution I have found online is not to use <code>--daemon</code> at all, but start a regular Emacs instance in a Screen session, then invoke the Elisp function <code>(server-start)</code>. Screen is a foreground process that doesn’t require a terminal on stdin/stdout, so it can be supervised easily.</p>
+<p>The real solution is to fix those daemons.</p>
+</section>
+</section>
+<section id="the-window-manager" class="level2">
+<h2>The window manager</h2>
+<p>Now that you know how to use s6 as your process supervisor, you can go one step further and make s6-svscan the main process of your graphical session. It can also take care of starting your window manager. Therefore your window manager no longer has a special role. Indeed you can restart it or even switch to a different one without closing your session.</p>
+<p>The first step is to create another supervised process for your window manager. Most window managers are designed to be started from X session scripts, so they are regular foreground processes. Thus the setup process is the same as for urxvtd above.</p>
+<p>After that adjust your session script (most likely <code>~/.xsession</code>) to exec into s6-svscan after running all one-shot commands. Example of what a typical session script might look like:</p>
+<pre><code>#! /usr/bin/env sh
+
+xmodmap ~/cfg/xmodmap
+xrdb -merge ~/cfg/xresources
+xset r rate 250 30
+xsetroot -cursor_name left_ptr
+feh --bg-fill ~/gfx/wallpaper.jpg
+
+exec s6-svscan ~/run</code></pre>
+<p>Remember that you no longer start background daemons from here. Turn those into supervised processes instead.</p>
+<p>Once you start your X session this way you can no longer terminate it by telling your window manager to quit, because s6-supervise would simply restart it and nothing else would happen. Instead you may want to bind a keyboard shortcut to the following command:</p>
+<pre><code>s6-svscanctl -q ~/run</code></pre>
+</section>
+<section id="conclusion" class="level2">
+<h2>Conclusion</h2>
+<p>S6 should make your X sessions a lot more robust and potentially also easier to manage. No longer will you need PID files, and s6 has many features that I didn’t discuss here, so this article merely scratches the surface. Of course most of these features (logging, readiness notifications, socket activation, etc.) are mainly useful for system services rather than background programs of your graphical session, but perhaps you find some use for them.</p>
+<p>Also as noted earlier s6 only does process supervision. There are at least two service managers built on top of s6 with the most obvious one being <a href="http://skarnet.org/software/s6-rc/">s6-rc</a> that is written by the same people, and a third-party one called <a href="http://jjacky.com/anopa/">anopa</a>, each with different trade-offs. These are useful, if you have dependencies between the processes, or if you have a bunch of one-shot services (services that don’t correspond to a running daemon). For example if you attach a beamer to your laptop, you could have a <em>beamer</em> service that runs the appropriate <code>xrandr</code> commands to enable the HDMI/VGA output when started and disable it when stopped. You can go as far as to trigger the service in response to connecting a display device to a certain port, but this is far beyond the scope of this article.</p>
+<p>Have fun!</p>
+</section>
+</div>
+</main>
+<footer>
+<p>&copy; Ertugrul Söylemez</p>
+<p><a href="../about.html">Legal information</a></p>
+</footer>
+</body>
+</html>
