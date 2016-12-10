@@ -534,7 +534,7 @@ _f x (append2 xs) = \ys -> x : append2 xs ys
 ```
 
 Finally we rewrite this a bit, moving the lambda to the left hand side
-and renaming `append xs` to `more`:
+and renaming `append2 xs` to `more`:
 
 ``` haskell
 _f x more ys = x : more ys

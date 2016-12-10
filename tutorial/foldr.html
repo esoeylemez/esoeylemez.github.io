@@ -264,7 +264,7 @@ foldr _f _z (x<span class="fu">:</span>xs) <span class="fu">=</span> \ys <span c
 _f x (foldr _f _z xs) <span class="fu">=</span> \ys <span class="ot">-&gt;</span> x <span class="fu">:</span> append2 xs ys</code></pre></div>
 <p>Once again we tie the recursive knot for the non-empty case:</p>
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">_f x (append2 xs) <span class="fu">=</span> \ys <span class="ot">-&gt;</span> x <span class="fu">:</span> append2 xs ys</code></pre></div>
-<p>Finally we rewrite this a bit, moving the lambda to the left hand side and renaming <code>append xs</code> to <code>more</code>:</p>
+<p>Finally we rewrite this a bit, moving the lambda to the left hand side and renaming <code>append2 xs</code> to <code>more</code>:</p>
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">_f x more ys <span class="fu">=</span> x <span class="fu">:</span> more ys</code></pre></div>
 <p>This leads to a seemingly different implementation from what we had before:</p>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">append2 ::</span> [a] <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> [a]
