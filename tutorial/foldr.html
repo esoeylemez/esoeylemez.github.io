@@ -539,7 +539,7 @@ take <span class="dv">5</span> (dropEveryOther [<span class="dv">0</span><span c
 <p>Here is the enlightening part: all folds involve reverse state. In fact folds are <em>completely about</em> reverse state. Let’s look at a few simple examples.</p>
 <section id="the-identity-fold" class="level3">
 <h3>The identity fold</h3>
-<p>Is there a fold that just returns the original list unchanged? In other words, are there <code>_f</code> and <code>_z</code> such that that <code>foldr _f _z = id</code>? Let’s see:</p>
+<p>Is there a fold that just returns the original list unchanged? In other words, are there <code>_f</code> and <code>_z</code> such that <code>foldr _f _z = id</code>? Let’s see:</p>
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">foldr _f _z [] <span class="fu">=</span> id []
 foldr _f _z [] <span class="fu">=</span> []
 _z <span class="fu">=</span> []

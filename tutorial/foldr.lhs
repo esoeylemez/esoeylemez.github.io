@@ -1061,8 +1061,7 @@ The identity fold
 -----------------
 
 Is there a fold that just returns the original list unchanged?  In other
-words, are there `_f` and `_z` such that that `foldr _f _z = id`?  Let's
-see:
+words, are there `_f` and `_z` such that `foldr _f _z = id`?  Let's see:
 
 ``` haskell
 foldr _f _z [] = id []
