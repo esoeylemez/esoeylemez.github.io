@@ -1218,7 +1218,7 @@ This is a recipe for disaster, once we have to refactor our code.
 
 The reason this code is boolean-blind is that the `null` function
 reduces its knowledge about the shape of the list to literally a single
-bit of information, but in the `then` branch we would have needed more
+bit of information, but in the `else` branch we would have needed more
 than that.  The way to eliminate boolean-blindness thus is to *preserve*
 all the information we need.  Enter `safeHead`:
 
